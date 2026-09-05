@@ -114,3 +114,100 @@ function wrap(text, indent = '', width = 78) {
   if (line) out.push(line);
   return out.join(`\n${indent}`);
 }
+
+/**
+ * Plain-text rendering of the clinician handout. Deliberately verbose: a
+ * provider needs the endorsed items, not only the band.
+ */
+export function toProviderText(provider) {
+  const lines = [];
+  const rule = () => lines.push('');
+  const heading = (text) => {
+    lines.push(text.toUpperCase());
+    lines.push('-'.repeat(Math.min(78, text.length)));
+  };
+
+  lines.push('POSTPARTUM CHECK-UP — SUMMARY FOR A HEALTHCARE PROVIDER');
+  lines.push('Patient-completed screening. Not a diagnosis and not a validated instrument.');
+  rule();
+  if (provider.meta.name) lines.push(`Completed by: ${provider.meta.name}`);
+  lines.push(`Completed: ${provider.meta.completedAtLabel}`);
+  lines.push(`Stage: ${provider.meta.stage}`);
+  lines.push(`Overall: ${provider.meta.severity.icon} ${provider.meta.severity.label}`);
+  lines.push(`Functional impact: ${provider.functioning.label}`);
+  if (provider.meta.drivers.length) lines.push(wrap(`Driven by: ${provider.meta.drivers.join('; ')}`));
+  rule();
+
+  if (provider.meta.halted) {
+    lines.push('** SCORING HALTED BY THE SAFETY SCREEN **');
+    lines.push(wrap('The patient was shown an urgent-assessment message and advised to seek immediate evaluation. Symptom bands below are reported for completeness only and were not presented to them as a result.'));
+    rule();
+  }
+
+  heading('Safety screen');
+  lines.push(`Level: ${provider.safety.level}`);
+  provider.safety.items.forEach((item) => {
+    lines.push(bullet(`${item.text}`));
+    lines.push(`    ${item.endorsed ? '>> ' : ''}${wrap(item.answer, '    ', 72)}`);
+  });
+  if (provider.safety.flags.length) {
+    rule();
+    lines.push('Flags raised:');
+    provider.safety.flags.forEach((f) => lines.push(bullet(`[${f.level}] ${f.label}`)));
+  }
+  if (provider.safety.intrusiveHarmThoughts) {
+    lines.push(bullet('Reported unwanted, ego-dystonic intrusive thoughts about harm. Recorded as an obsessional pattern, not as risk.'));
+  }
+  rule();
+
+  heading('Symptom patterns');
+  provider.patterns.forEach((p) => {
+    const scoreLine = p.percent == null ? 'no scored items answered' : `${p.raw}/${p.max} = ${p.percent}%`;
+    lines.push(`${p.label}: ${p.band.toUpperCase()} (${scoreLine}, ${p.answeredCount} items answered)`);
+    if (!p.cardinalMet) lines.push('    Cardinal symptoms not endorsed; band capped.');
+    p.modifiers.forEach((m) => lines.push(`    Adjusted — ${m.effect}: ${wrap(m.reason, '    ', 68)}`));
+    p.endorsed.forEach((e) => lines.push(`    [${e.score}] ${wrap(`${e.text} — ${e.answer}`, '        ', 68)}`));
+    p.contextual.forEach((c) => lines.push(`    ( ) ${wrap(`${c.text} — ${c.answer}`, '        ', 68)}`));
+    rule();
+  });
+
+  if (provider.bipolar.warning) {
+    heading('Bipolar-spectrum warning');
+    lines.push(wrap('Reduced need for sleep was endorsed alongside other elevated-mood features. The patient has been advised to ask for assessment before any antidepressant is started or changed.'));
+    lines.push(bullet(`Reduced need for sleep, item score: ${provider.bipolar.decreasedNeedForSleep}/3`));
+    lines.push(bullet(`Features endorsed at "more days than not" or above: ${provider.bipolar.symptomCount}`));
+    if (provider.bipolar.duration) lines.push(bullet(`Longest episode: ${provider.bipolar.duration}`));
+    if (provider.bipolar.impact) lines.push(bullet(`Impact: ${provider.bipolar.impact}`));
+    if (provider.bipolar.history) lines.push(bullet(`History: ${provider.bipolar.history}`));
+    rule();
+  }
+
+  heading('Functioning');
+  lines.push(
+    provider.functioning.percent == null
+      ? 'Not answered.'
+      : `${provider.functioning.label} (${provider.functioning.raw}/${provider.functioning.max} = ${provider.functioning.percent}%)`,
+  );
+  provider.functioning.items
+    .filter((item) => (item.score ?? 0) > 0)
+    .forEach((item) => lines.push(`    [${item.score}] ${wrap(`${item.text} — ${item.answer}`, '        ', 68)}`));
+  rule();
+
+  heading('Context');
+  provider.context.forEach((c) => lines.push(bullet(`${c.text} — ${c.answer}`)));
+  rule();
+
+  if (provider.scenarioResponses.length) {
+    heading('Scenario responses, in the patient’s own selection');
+    provider.scenarioResponses.forEach((s) => {
+      if (s.situation) lines.push(bullet(wrap(s.situation, '  ', 74)));
+      lines.push(`    -> ${wrap(s.answer, '       ', 68)}`);
+    });
+    rule();
+  }
+
+  heading('What this is and is not');
+  provider.limitations.forEach((l) => lines.push(bullet(l)));
+
+  return lines.join('\n');
+}

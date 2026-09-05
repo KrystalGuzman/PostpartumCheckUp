@@ -11,7 +11,8 @@ import { createState, applyExclusive } from '../engine/state.js';
 import { evaluateSafety } from '../engine/safety.js';
 import { scoreAll } from '../engine/scoring.js';
 import { buildResults } from '../engine/results.js';
-import { toPlainText } from '../engine/summaryText.js';
+import { toPlainText, toProviderText } from '../engine/summaryText.js';
+import { buildProviderSummary } from '../engine/providerSummary.js';
 import { OPENING_STATEMENT } from '../data/context.js';
 import { regions, DEPLOYMENT_NOTE } from '../data/resources.js';
 
@@ -24,6 +25,11 @@ const ui = {
   region: 'us',
   save: false,
   emergencyAcknowledged: false,
+  /** Which summary is on screen: the one written for the parent, or the handout. */
+  view: 'me',
+  /** Optional, for the top of a printed handout. Never leaves the device. */
+  name: '',
+  completedAt: null,
 };
 
 const state = createState(registry, loadSaved());
@@ -39,6 +45,7 @@ function loadSaved() {
     const parsed = JSON.parse(raw);
     ui.save = true;
     ui.region = parsed.region ?? 'us';
+    ui.name = parsed.name ?? '';
     return parsed.responses ?? {};
   } catch {
     return {};
@@ -48,7 +55,7 @@ function loadSaved() {
 function persist() {
   try {
     if (!ui.save) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ responses: state.responses, region: ui.region }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ responses: state.responses, region: ui.region, name: ui.name }));
   } catch {
     /* private browsing, blocked storage — the check-up still works in-memory */
   }
@@ -204,9 +211,50 @@ function emergencyScreen() {
 function resultsScreen() {
   const scored = scoreAll(state);
   const results = buildResults(scored, state, ui.region);
+  ui.completedAt = ui.completedAt ?? new Date();
 
   return `
+    ${summaryControls()}
+    <div id="summary-doc">
+      ${ui.view === 'provider' ? providerDoc(scored, results) : parentSummary(results)}
+    </div>
+    <div class="actions no-print">
+      <button data-action="review">Go back to my answers</button>
+      <button data-action="reset">Start over and delete my answers</button>
+    </div>
+    <p class="small muted" id="copy-status" role="status"></p>
+  `;
+}
+
+/** View switch, name field, and the save/print controls. Never printed. */
+function summaryControls() {
+  return `
+    <div class="controls no-print">
+      <div class="switch" role="group" aria-label="Which summary to show">
+        <button data-action="view-me" class="${ui.view === 'me' ? 'active' : ''}" aria-pressed="${ui.view === 'me'}">Written for me</button>
+        <button data-action="view-provider" class="${ui.view === 'provider' ? 'active' : ''}" aria-pressed="${ui.view === 'provider'}">For my provider</button>
+      </div>
+      ${
+        ui.view === 'provider'
+          ? `<p class="small muted" style="margin:.7rem 0 .4rem">This version shows what you actually answered, including the safety questions, so a clinician can see the detail rather than a summary of it. Check it before you hand it over — you decide what to share.</p>
+             <label class="namefield">Name or initials for the top of the page (optional)
+               <input type="text" id="__name" value="${esc(ui.name)}" autocomplete="off" placeholder="Leave blank to stay anonymous" />
+             </label>`
+          : ''
+      }
+      <div class="actions" style="margin-top:.9rem">
+        <button class="primary" data-action="print">Print or save as PDF</button>
+        <button data-action="download-html">Save as a web page</button>
+        <button data-action="download-text">Save as plain text</button>
+        <button data-action="copy">Copy as text</button>
+      </div>
+    </div>`;
+}
+
+function parentSummary(results) {
+  return `
     <h1 tabindex="-1">Your Postpartum Check-Up Summary</h1>
+    <p class="small muted">Completed ${esc((ui.completedAt ?? new Date()).toLocaleString(undefined, { dateStyle: 'long', timeStyle: 'short' }))}</p>
     ${
       results.emergency
         ? `<div class="notice urgent"><h2 style="margin-top:0">Urgent</h2><p>${esc(results.statement)}</p>${
@@ -279,14 +327,157 @@ function resultsScreen() {
     <p>${esc(results.disclaimer)}</p>
     ${results.closing ? `<p><strong>${esc(results.closing)}</strong></p>` : ''}
 
-    <div class="actions no-print">
-      <button class="primary" data-action="print">Print or save as PDF</button>
-      <button data-action="copy">Copy summary as text</button>
-      <button data-action="review">Go back to my answers</button>
-      <button data-action="reset">Start over and delete my answers</button>
-    </div>
-    <p class="small muted" id="copy-status" role="status"></p>
     ${footnote()}
+  `;
+}
+
+/** The clinician handout: what was answered, not a retelling of it. */
+function providerDoc(scored, results) {
+  const provider = buildProviderSummary(scored, state, { completedAt: ui.completedAt, name: ui.name });
+  const { meta, safety, patterns, functioning, context, scenarioResponses, bipolar } = provider;
+
+  return `
+    <header class="doc-head">
+      <h1 tabindex="-1">Postpartum Check-Up — summary for a healthcare provider</h1>
+      <p class="small muted">Patient-completed screening · not a diagnosis · not a validated instrument</p>
+      <dl class="meta">
+        ${meta.name ? `<div><dt>Completed by</dt><dd>${esc(meta.name)}</dd></div>` : ''}
+        <div><dt>Completed</dt><dd>${esc(meta.completedAtLabel)}</dd></div>
+        <div><dt>Stage</dt><dd>${esc(meta.stage)}</dd></div>
+        <div><dt>Overall</dt><dd>${meta.severity.icon} ${esc(meta.severity.label)}</dd></div>
+        <div><dt>Functional impact</dt><dd>${esc(functioning.label)}</dd></div>
+      </dl>
+      ${meta.drivers.length ? `<p class="small">Driven by ${esc(meta.drivers.join('; '))}.</p>` : ''}
+    </header>
+
+    ${
+      meta.halted
+        ? `<div class="notice urgent"><h2 style="margin-top:0">Scoring was halted by the safety screen</h2>
+             <p>${esc(results.statement)}</p>
+             <p class="small">The patient was shown this message and advised to seek immediate evaluation. Symptom bands below are included for completeness and were not presented to them as a result.</p>
+           </div>`
+        : ''
+    }
+
+    <section>
+      <h2>Safety screen <span class="tag">level: ${esc(safety.level)}</span></h2>
+      <table class="doc-table">
+        <tbody>
+          ${safety.items
+            .map(
+              (item) => `<tr class="${item.endorsed ? 'flagged' : ''}">
+                <th scope="row">${esc(item.text)}</th>
+                <td>${item.endorsed ? '<strong>' : ''}${esc(item.answer)}${item.endorsed ? '</strong>' : ''}</td>
+              </tr>`,
+            )
+            .join('')}
+        </tbody>
+      </table>
+      ${
+        safety.flags.length
+          ? `<p class="small"><strong>Flags:</strong> ${esc(safety.flags.map((f) => `[${f.level}] ${f.label}`).join(' · '))}</p>`
+          : '<p class="small">No safety flags raised.</p>'
+      }
+      ${
+        safety.intrusiveHarmThoughts
+          ? '<p class="small">Reported unwanted, ego-dystonic intrusive thoughts about harm. Recorded as an obsessional pattern, not as risk.</p>'
+          : ''
+      }
+    </section>
+
+    <section>
+      <h2>Symptom patterns</h2>
+      ${patterns
+        .map(
+          (p) => `<div class="pattern">
+            <div class="head">
+              <span class="name">${esc(p.label)}</span>
+              <span class="band" data-band="${esc(p.band)}">${esc(p.band)}${
+                p.percent == null ? '' : ` · ${p.raw}/${p.max} (${p.percent}%)`
+              }</span>
+            </div>
+            ${p.cardinalMet ? '' : '<p class="small muted" style="margin:.2rem 0">Cardinal symptoms not endorsed; band capped.</p>'}
+            ${p.modifiers
+              .map((m) => `<p class="small muted" style="margin:.2rem 0">Adjusted — ${esc(m.effect)}: ${esc(m.reason)}.</p>`)
+              .join('')}
+            ${
+              p.endorsed.length
+                ? `<ul class="items">${p.endorsed
+                    .map((e) => `<li><span class="score">${e.score}</span> ${esc(e.text)} — <em>${esc(e.answer)}</em></li>`)
+                    .join('')}</ul>`
+                : '<p class="small muted" style="margin:.2rem 0">Nothing endorsed in this module.</p>'
+            }
+            ${
+              p.contextual.length
+                ? `<ul class="items context">${p.contextual
+                    .map((c) => `<li>${esc(c.text)} — <em>${esc(c.answer)}</em></li>`)
+                    .join('')}</ul>`
+                : ''
+            }
+          </div>`,
+        )
+        .join('')}
+    </section>
+
+    ${
+      bipolar.warning
+        ? `<section>
+             <h2>Bipolar-spectrum warning</h2>
+             <p>Reduced need for sleep was endorsed alongside other elevated-mood features. The patient has been advised to ask for assessment before any antidepressant is started or changed.</p>
+             <ul class="items">
+               <li>Reduced need for sleep, item score: ${bipolar.decreasedNeedForSleep}/3</li>
+               <li>Features at “more days than not” or above: ${bipolar.symptomCount}</li>
+               ${bipolar.duration ? `<li>Longest episode: ${esc(bipolar.duration)}</li>` : ''}
+               ${bipolar.impact ? `<li>Impact: ${esc(bipolar.impact)}</li>` : ''}
+               ${bipolar.history ? `<li>History: ${esc(bipolar.history)}</li>` : ''}
+             </ul>
+           </section>`
+        : ''
+    }
+
+    <section>
+      <h2>Functioning</h2>
+      <p>${esc(functioning.label)}${functioning.percent == null ? '' : ` (${functioning.raw}/${functioning.max}, ${functioning.percent}%)`}</p>
+      <ul class="items">
+        ${functioning.items
+          .filter((item) => (item.score ?? 0) > 0)
+          .map((item) => `<li><span class="score">${item.score}</span> ${esc(item.text)} — <em>${esc(item.answer)}</em></li>`)
+          .join('')}
+      </ul>
+    </section>
+
+    <section>
+      <h2>Context</h2>
+      <table class="doc-table">
+        <tbody>${context.map((c) => `<tr><th scope="row">${esc(c.text)}</th><td>${esc(c.answer)}</td></tr>`).join('')}</tbody>
+      </table>
+    </section>
+
+    ${
+      scenarioResponses.length
+        ? `<section>
+             <h2>Scenario responses</h2>
+             ${scenarioResponses
+               .map(
+                 (sc) => `<div class="scenario-row">
+                   ${sc.situation ? `<p class="small muted" style="margin:0 0 .2rem">${esc(sc.situation)}</p>` : ''}
+                   <p style="margin:0">${esc(sc.answer)}</p>
+                 </div>`,
+               )
+               .join('')}
+           </section>`
+        : ''
+    }
+
+    <section>
+      <h2>Requested next steps, as shown to the patient</h2>
+      <ul class="plain">${results.nextSteps.map((step) => `<li>${esc(step.text)}</li>`).join('')}</ul>
+    </section>
+
+    <section>
+      <h2>What this is and is not</h2>
+      <ul class="plain">${provider.limitations.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
+    </section>
   `;
 }
 
@@ -313,6 +504,13 @@ function footnote() {
 // Events
 // ---------------------------------------------------------------------------
 
+app.addEventListener('input', (event) => {
+  if (event.target instanceof HTMLInputElement && event.target.id === '__name') {
+    ui.name = event.target.value;
+    persist();
+  }
+});
+
 app.addEventListener('change', (event) => {
   const input = event.target;
   if (!(input instanceof HTMLInputElement)) return;
@@ -321,6 +519,14 @@ app.addEventListener('change', (event) => {
     ui.save = input.checked;
     if (ui.save) persist();
     else forget();
+    render({ preserveFocus: true });
+    return;
+  }
+  if (input.id === '__name') {
+    // Typing only persists (see the `input` listener); the redraw that puts the
+    // name into the document happens here, on blur, so the caret is left alone.
+    ui.name = input.value;
+    persist();
     render({ preserveFocus: true });
     return;
   }
@@ -380,11 +586,19 @@ app.addEventListener('click', (event) => {
   } else if (action === 'review') {
     ui.screen = 'section';
     ui.sectionId = applicableSections(state)[0].id;
+  } else if (action === 'view-me' || action === 'view-provider') {
+    ui.view = action === 'view-me' ? 'me' : 'provider';
   } else if (action === 'print') {
     window.print();
     return;
   } else if (action === 'copy') {
     copySummary();
+    return;
+  } else if (action === 'download-text') {
+    downloadFile(`${filenameStem()}.txt`, summaryAsText(), 'text/plain');
+    return;
+  } else if (action === 'download-html') {
+    downloadStandaloneHtml();
     return;
   } else if (action === 'reset') {
     if (!confirm('Delete every answer and start over?')) return;
@@ -398,15 +612,85 @@ app.addEventListener('click', (event) => {
   render();
 });
 
-async function copySummary() {
+/** Whichever summary is currently on screen, as plain text. */
+function summaryAsText() {
   const scored = scoreAll(state);
-  const text = toPlainText(buildResults(scored, state, ui.region));
-  const status = document.getElementById('copy-status');
+  const results = buildResults(scored, state, ui.region);
+  return ui.view === 'provider'
+    ? toProviderText(buildProviderSummary(scored, state, { completedAt: ui.completedAt ?? new Date(), name: ui.name }))
+    : toPlainText(results);
+}
+
+function filenameStem() {
+  const date = (ui.completedAt ?? new Date()).toISOString().slice(0, 10);
+  const who = ui.name.trim().replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase();
+  const audience = ui.view === 'provider' ? 'for-provider' : 'summary';
+  return ['postpartum-check-up', audience, who, date].filter(Boolean).join('-');
+}
+
+function status(message) {
+  const el = document.getElementById('copy-status');
+  if (el) el.textContent = message;
+}
+
+function downloadFile(filename, contents, type) {
+  try {
+    const url = URL.createObjectURL(new Blob([contents], { type: `${type};charset=utf-8` }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    status(`Saved as ${filename}. It is in your downloads, and nothing was sent anywhere.`);
+  } catch {
+    status('Saving was blocked by your browser. Use “Print or save as PDF”, or copy the text instead.');
+  }
+}
+
+/**
+ * A self-contained copy of what is on screen: the summary markup with the
+ * stylesheet inlined, so the saved file opens and prints correctly anywhere,
+ * offline, with no reference back to this app.
+ */
+async function downloadStandaloneHtml() {
+  const doc = document.getElementById('summary-doc');
+  if (!doc) return;
+
+  const clone = doc.cloneNode(true);
+  clone.querySelectorAll('.no-print').forEach((el) => el.remove());
+
+  let css = '';
+  try {
+    const response = await fetch(new URL('../../assets/styles.css', import.meta.url));
+    css = await response.text();
+  } catch {
+    css = 'body{font:16px/1.6 system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;color:#222}';
+  }
+
+  const title = ui.view === 'provider' ? 'Postpartum Check-Up — summary for a healthcare provider' : 'Postpartum Check-Up Summary';
+  const html = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${esc(title)}</title>
+<style>${css}</style>
+</head>
+<body><main class="wrap">${clone.innerHTML}</main></body>
+</html>`;
+
+  downloadFile(`${filenameStem()}.html`, html, 'text/html');
+}
+
+async function copySummary() {
+  const text = summaryAsText();
   try {
     await navigator.clipboard.writeText(text);
-    if (status) status.textContent = 'Summary copied. You can paste it into a note or an email to your provider.';
+    status('Copied. You can paste it into a note, a message, or an email to your provider.');
   } catch {
-    if (status) status.textContent = 'Copying was blocked by your browser. Use "Print or save as PDF" instead.';
+    status('Copying was blocked by your browser. Use “Save as plain text” instead.');
   }
 }
 

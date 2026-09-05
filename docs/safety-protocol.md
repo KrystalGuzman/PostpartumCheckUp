@@ -53,6 +53,10 @@ Getting this distinction wrong in either direction causes harm. Treating intrusi
 - The emergency screen states plainly that the flag is not a judgment about them as a parent and does not mean their baby will be taken away — fear of exactly that is a leading reason these symptoms go unreported.
 - Psychosis is described as rare, as a medical and psychiatric emergency, and explicitly not as a severe form of anxiety.
 
+## In the clinician handout
+
+The provider view reports the entire safety screen, answered or not, endorsed or not. Denials are shown rather than omitted, unanswered questions are labelled as such, and options marked benign in the data are not highlighted as findings. Where scoring was halted, the handout says so at the top and notes that the symptom bands below it were never presented to the patient as a result.
+
 ## What this file does not cover
 
 The emergency pathway here ends in text on a screen. A real deployment needs more: licensed clinicians who have reviewed and signed off the logic, verified location-specific crisis resources, a defined handoff, a documented record of what the person was shown, and a decision about mandatory-reporting obligations in the jurisdiction. None of that can be inferred from the code, and shipping without it would be worse than not shipping.

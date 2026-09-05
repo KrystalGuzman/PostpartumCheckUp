@@ -97,7 +97,7 @@ export const safetySection = {
       text: 'Right now, are you able to keep yourself and your baby safe and cared for?',
       options: [
         { value: 'yes', label: 'Yes', score: 0 },
-        { value: 'mostly', label: 'Mostly — it is hard, but we are okay', score: 1 },
+        { value: 'mostly', label: 'Mostly — it is hard, but we are okay', score: 1, benign: true },
         { value: 'unsure', label: 'I am not sure', score: 2, flags: ['care_unsure'] },
         { value: 'no', label: 'No — I need help today', score: 3, flags: ['care_unable'] },
         { ...PREFER_NOT_TO_ANSWER, flags: ['safety_declined'] },
@@ -141,7 +141,7 @@ export const safetySection = {
       showIf: (state) => state.flags.some((f) => f.startsWith('psy_')),
       options: [
         { value: 'no', label: 'They have not really happened, or they have been there a long time', score: 0 },
-        { value: 'gradual', label: 'They built up gradually over months', score: 1 },
+        { value: 'gradual', label: 'They built up gradually over months', score: 1, benign: true },
         { value: 'rapid', label: 'They came on over days or a couple of weeks', score: 2, flags: ['rapid_onset'] },
         PREFER_NOT_TO_ANSWER,
       ],

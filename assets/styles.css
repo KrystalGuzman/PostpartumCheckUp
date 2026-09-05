@@ -135,10 +135,66 @@ ul.plain li { margin-bottom: .45rem; }
 
 [hidden] { display: none !important; }
 
+/* --- summary controls and the provider document ------------------------ */
+.controls { border: 1px solid var(--line); border-radius: var(--radius); padding: .9rem 1rem; margin-bottom: 1.4rem; background: var(--surface-alt); }
+.switch { display: inline-flex; border: 1px solid var(--line); border-radius: 99px; overflow: hidden; background: var(--surface); }
+.switch button { border: 0; border-radius: 0; padding: .5rem 1rem; background: transparent; }
+.switch button.active { background: var(--accent); color: #fff; font-weight: 500; }
+@media (prefers-color-scheme: dark) { .switch button.active { color: #14131a; } }
+.namefield { display: block; font-size: .9rem; color: var(--muted); }
+.namefield input {
+  display: block; width: 100%; margin-top: .3rem; font: inherit; color: var(--ink);
+  padding: .5rem .7rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+}
+
+.doc-head { border-bottom: 2px solid var(--ink); padding-bottom: .8rem; margin-bottom: 1.2rem; }
+.doc-head h1 { font-size: 1.35rem; margin-bottom: .2rem; }
+.meta { display: grid; grid-template-columns: max-content 1fr; gap: .15rem .9rem; margin: .8rem 0 0; font-size: .95rem; }
+.meta > div { display: contents; }
+.meta dt { color: var(--muted); }
+.meta dd { margin: 0; }
+
+.doc-table { width: 100%; border-collapse: collapse; font-size: .93rem; margin: .5rem 0 .8rem; }
+.doc-table th, .doc-table td { text-align: left; vertical-align: top; padding: .4rem .6rem; border-bottom: 1px solid var(--line); font-weight: 400; }
+.doc-table th { width: 55%; color: var(--muted); }
+.doc-table tr.flagged td, .doc-table tr.flagged th { background: var(--red-soft); color: var(--ink); }
+
+.tag { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: .1rem .5rem; vertical-align: middle; }
+
+ul.items { list-style: none; padding: 0; margin: .4rem 0 0; font-size: .93rem; }
+ul.items li { padding: .22rem 0; border-bottom: 1px dotted var(--line); }
+ul.items.context li { color: var(--muted); }
+ul.items .score {
+  display: inline-block; min-width: 1.3rem; text-align: center; margin-right: .4rem;
+  border: 1px solid var(--line); border-radius: 5px; font-size: .8rem; color: var(--muted);
+}
+.scenario-row { border-left: 3px solid var(--line); padding-left: .8rem; margin-bottom: .7rem; }
+section { margin-bottom: 1.6rem; }
+
+/* --- print -------------------------------------------------------------- */
+@page { margin: 16mm 14mm; }
+
 @media print {
-  .no-print { display: none !important; }
-  body { background: #fff; color: #000; font-size: 12pt; }
-  .card, .pattern, .severity, .resources, .notice { break-inside: avoid; }
+  .no-print, .controls, .progress { display: none !important; }
+  body { background: #fff; color: #000; font-size: 10.5pt; }
+  .wrap { max-width: none; padding: 0; }
+  a { color: #000; text-decoration: none; }
+
+  h1 { font-size: 15pt; }
+  h2 { font-size: 12pt; margin-top: 1.1em; break-after: avoid; }
+  .doc-head { border-bottom-color: #000; }
+
+  .card, .pattern, .severity, .resources, .notice, .scenario-row, section, tr { break-inside: avoid; }
+  .pattern, .severity, .resources, .notice, .doc-table, ul.items li { border-color: #999; }
+  .severity { border-left-width: 4px; }
+  .doc-table tr.flagged td, .doc-table tr.flagged th { background: transparent; }
+  .doc-table tr.flagged th::after { content: ' ▸'; }
+  .notice.urgent { border: 2px solid #000; background: transparent; }
+  .notice.urgent h2 { color: #000; }
+  ul.items .score { border-color: #999; }
+
+  /* Printed pages get handed around; say what they are on every sheet. */
+  .footnote { border-top: 1px solid #999; }
 }
 
 @media (prefers-reduced-motion: reduce) {

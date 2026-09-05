@@ -126,6 +126,18 @@ The summary reports stage, ranked patterns, a severity band, functional impact, 
 | 🟠 | Significant concern / arrange professional assessment |
 | 🔴 | Urgent concern / seek immediate professional evaluation |
 
+### The clinician handout
+
+The results page offers a second view intended to be printed or saved and handed to a professional. It is a record of responses, not an assessment, and it makes no recommendation the parent-facing summary does not also make.
+
+Three decisions worth naming:
+
+- **Negatives are reported.** The safety block lists every safety question with its answer, including denials, and distinguishes both from "not answered". A clinician reading a screening handout needs to know that self-harm was asked about and denied, not merely that it is absent from the page.
+- **Benign answers are not marked as findings.** "Mostly — it is hard, but we are okay" scores above zero for the capacity item but is flagged in the data as benign, so it is not highlighted as an endorsement. Options carry that marker rather than the rendering code guessing from scores.
+- **Item-level detail, not just bands.** Each module lists what was endorsed and at what level, alongside the raw score, the denominator, and every band adjustment with its reason. A band on its own is not clinically actionable, and a prorated percentage is misleading without the count of answered items beside it.
+
+The handout also states, in its own words, that it is patient-completed, that no clinician reviewed it, and that its numbers are not scores from any validated instrument.
+
 Language rules, enforced by tests that grep generated output:
 
 - Patterns are attributed to responses, and judgment is attributed to clinicians: *"Your responses show several symptoms commonly associated with depression. A healthcare professional can determine whether they meet criteria for a depressive disorder."*

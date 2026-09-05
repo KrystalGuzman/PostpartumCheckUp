@@ -22,7 +22,21 @@ The check-up runs in this order, and the order is the point:
 3. **Symptom modules** — baby blues (early weeks only), depression, anxiety, perinatal OCD, birth trauma, bipolar spectrum, adjustment, grief, physical contributors, and the support context.
 4. **Scenarios** — stage-matched everyday situations, from birth through the first birthday.
 5. **Functioning** — what the person can actually do, scored separately from how they feel.
-6. **Summary** — stage, ranked patterns, a severity band, functional impact, next steps, questions to take to a clinician, and local crisis resources.
+6. **Summary** — in two versions, switched at the top of the results page.
+
+### Two summaries
+
+**Written for me** — stage, ranked patterns, a severity band, functional impact, next steps, questions to take to a clinician, and local crisis resources.
+
+**For my provider** — a handout meant to be printed or saved and handed over. It shows what was actually endorsed rather than a retelling of it:
+
+- header with optional name or initials, date and time completed, stage, overall band and what drove it;
+- the safety screen in full, **including the negatives**, so a denial is distinguishable from an unanswered question, with endorsements marked and benign answers not;
+- each module with its band, raw score over available score, prorated percentage, every logged band adjustment, and the individual items endorsed with their levels;
+- the bipolar warning detail, functioning item by item, the context answers, the scenarios the person picked, and the next steps they were shown;
+- a closing block stating plainly that this is patient-completed, unreviewed, and that the numbers are not EPDS, PHQ-9, GAD-7, MDQ or PCL-5 scores.
+
+Either version can be printed (a print stylesheet handles page breaks, drops the interface, and marks flagged rows without relying on colour), saved as a self-contained `.html` file with the stylesheet inlined, saved as wrapped plain text, or copied to the clipboard. Saving is a local file write — nothing is uploaded, and the name field never leaves the device.
 
 A full run is around 90 questions; conditional gates (trauma, grief, baby blues, scenario stage) cut that down considerably for most people. Every question can be skipped.
 
