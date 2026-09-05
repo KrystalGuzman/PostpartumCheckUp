@@ -1,0 +1,190 @@
+/**
+ * Part 1 — Establish context.
+ *
+ * These items are contextual only. Nothing here is scored as a symptom, and no
+ * circumstance (feeding method, work status, birth route, partnership status)
+ * is treated as inherently healthier than any other. Context is used to choose
+ * stage-appropriate scenarios and to give the summary something to anchor to.
+ */
+
+export const PREFER_NOT_TO_ANSWER = { value: 'pna', label: 'Prefer not to answer', score: null };
+
+export const OPENING_STATEMENT = [
+  'This check-up is designed to help you understand patterns in your postpartum experience.',
+  'It cannot diagnose a mental-health condition.',
+  'Some postpartum experiences are normal responses to major life changes, while others deserve professional evaluation.',
+  'If anything you report suggests an urgent safety concern, the check-up will prioritize getting you appropriate help.',
+].join(' ');
+
+export const contextSection = {
+  id: 'context',
+  title: 'Your situation',
+  kind: 'context',
+  blurb:
+    'A few questions about where you are right now. There are no better or worse answers here — this only helps tailor the rest of the check-up.',
+  items: [
+    {
+      id: 'ctx_stage',
+      type: 'single',
+      text: 'How long has it been since your baby was born?',
+      options: [
+        { value: 'w0_2', label: 'Less than 2 weeks', weeks: 1 },
+        { value: 'w2_6', label: '2 to 6 weeks', weeks: 4 },
+        { value: 'w6_12', label: '6 weeks to 3 months', weeks: 9 },
+        { value: 'm3_6', label: '3 to 6 months', weeks: 20 },
+        { value: 'm6_9', label: '6 to 9 months', weeks: 32 },
+        { value: 'm9_12', label: '9 to 12 months', weeks: 45 },
+        { value: 'm12plus', label: 'More than 12 months', weeks: 56 },
+        PREFER_NOT_TO_ANSWER,
+      ],
+    },
+    {
+      id: 'ctx_first_baby',
+      type: 'single',
+      text: 'Is this your first baby?',
+      options: [
+        { value: 'yes', label: 'Yes' },
+        { value: 'no', label: 'No' },
+        PREFER_NOT_TO_ANSWER,
+      ],
+    },
+    {
+      id: 'ctx_birth',
+      type: 'multi',
+      text: 'How would you describe the birth?',
+      help: 'Choose everything that applies.',
+      options: [
+        { value: 'vaginal', label: 'Vaginal' },
+        { value: 'cesarean_planned', label: 'Planned cesarean' },
+        { value: 'cesarean_unplanned', label: 'Unplanned or emergency cesarean' },
+        { value: 'assisted', label: 'Assisted (forceps or vacuum)' },
+        { value: 'induced', label: 'Induced' },
+        { value: 'preterm', label: 'Premature / early delivery' },
+        { value: 'complicated', label: 'Complicated in some other way' },
+        { value: 'adoption_surrogacy', label: 'I became a parent through adoption or surrogacy' },
+        PREFER_NOT_TO_ANSWER,
+      ],
+    },
+    {
+      id: 'ctx_medical',
+      type: 'multi',
+      text: 'Was there a NICU stay or a significant medical complication for you or your baby?',
+      options: [
+        { value: 'nicu', label: 'NICU or special care nursery stay' },
+        { value: 'parent_complication', label: 'A significant medical complication for me' },
+        { value: 'baby_complication', label: 'A significant medical complication for my baby' },
+        { value: 'readmission', label: 'A hospital readmission for either of us' },
+        { value: 'none', label: 'Neither of us had a significant complication', exclusive: true },
+        PREFER_NOT_TO_ANSWER,
+      ],
+    },
+    {
+      id: 'ctx_sleep',
+      type: 'single',
+      text: 'How would you describe your sleep right now?',
+      options: [
+        { value: 'adequate', label: 'Broken, but I am getting enough overall' },
+        { value: 'short', label: 'Short — I get less than I need most nights' },
+        { value: 'very_short', label: 'Very little — I am running on a few hours at most' },
+        { value: 'cant_sleep', label: 'I have chances to sleep but cannot fall or stay asleep' },
+        { value: 'dont_need', label: 'I am sleeping very little and do not feel especially tired', flags: ['sleep_no_need'] },
+        PREFER_NOT_TO_ANSWER,
+      ],
+    },
+    {
+      id: 'ctx_feeding',
+      type: 'multi',
+      text: 'How are you feeding your baby right now?',
+      help: 'All of these are valid ways to feed a baby. Choose everything that applies.',
+      options: [
+        { value: 'breast', label: 'Nursing / chestfeeding' },
+        { value: 'pumping', label: 'Pumping' },
+        { value: 'formula', label: 'Formula' },
+        { value: 'combination', label: 'A combination' },
+        { value: 'donor_milk', label: 'Donor milk' },
+        { value: 'tube_or_medical', label: 'Tube or other medically supported feeding' },
+        { value: 'solids', label: 'Solids alongside milk or formula' },
+        { value: 'weaning', label: 'Weaning or recently weaned' },
+        PREFER_NOT_TO_ANSWER,
+      ],
+    },
+    {
+      id: 'ctx_work',
+      type: 'single',
+      text: 'What does work look like for you right now?',
+      options: [
+        { value: 'leave', label: 'On parental or medical leave' },
+        { value: 'home', label: 'At home with the baby, not returning to a job' },
+        { value: 'working', label: 'Working (in a workplace, remotely, or both)' },
+        { value: 'transitioning', label: 'In the middle of transitioning back to work' },
+        { value: 'studying', label: 'Studying' },
+        { value: 'seeking', label: 'Looking for work' },
+        { value: 'other', label: 'Something else' },
+        PREFER_NOT_TO_ANSWER,
+      ],
+    },
+    {
+      id: 'ctx_stressors',
+      type: 'multi',
+      text: 'What are your biggest stressors right now?',
+      help: 'Choose everything that applies.',
+      options: [
+        { value: 'relationship', label: 'Relationship conflict' },
+        { value: 'financial', label: 'Money' },
+        { value: 'housing', label: 'Housing' },
+        { value: 'work_return', label: 'Returning to work' },
+        { value: 'childcare', label: 'Childcare' },
+        { value: 'family', label: 'Family conflict or boundaries' },
+        { value: 'feeding', label: 'Feeding difficulties' },
+        { value: 'sleep', label: 'Sleep' },
+        { value: 'health_self', label: 'My own health' },
+        { value: 'health_baby', label: "My baby's health" },
+        { value: 'isolation', label: 'Isolation or loneliness' },
+        { value: 'independence', label: 'Loss of independence' },
+        { value: 'identity', label: 'Feeling like I have lost myself' },
+        { value: 'immigration_legal', label: 'Immigration or legal pressure' },
+        { value: 'other_stressor', label: 'Something else' },
+        { value: 'none', label: 'Nothing feels like a major stressor right now', exclusive: true },
+        PREFER_NOT_TO_ANSWER,
+      ],
+    },
+    {
+      id: 'ctx_support_practical',
+      type: 'single',
+      text: 'Do you have practical help — someone who takes the baby, cooks, drives, or handles things so you can rest?',
+      options: [
+        { value: 'reliable', label: 'Yes, reliably' },
+        { value: 'some', label: 'Some, but not as much as I need' },
+        { value: 'rare', label: 'Rarely' },
+        { value: 'none', label: 'No one' },
+        PREFER_NOT_TO_ANSWER,
+      ],
+    },
+    {
+      id: 'ctx_support_emotional',
+      type: 'single',
+      text: 'Do you have someone you can be honest with about how you are actually doing?',
+      options: [
+        { value: 'reliable', label: 'Yes, at least one person' },
+        { value: 'some', label: 'Sort of, but I hold most of it back' },
+        { value: 'none', label: 'No one' },
+        PREFER_NOT_TO_ANSWER,
+      ],
+    },
+    {
+      id: 'ctx_relationship',
+      type: 'single',
+      text: 'How would you describe your relationship with your partner or main support person right now?',
+      help: 'If you do not have a partner or a main support person, that is a valid answer too.',
+      options: [
+        { value: 'strong', label: 'Steady — we are getting through this together' },
+        { value: 'strained_but_ok', label: 'Strained, but basically okay' },
+        { value: 'tense', label: 'Tense or full of conflict' },
+        { value: 'alone_within', label: 'I feel alone in it even though someone is there' },
+        { value: 'no_partner', label: 'I do not have a partner or a main support person' },
+        { value: 'unsafe', label: 'I do not feel safe with them', flags: ['relationship_safety'] },
+        PREFER_NOT_TO_ANSWER,
+      ],
+    },
+  ],
+};
