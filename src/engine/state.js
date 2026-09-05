@@ -27,7 +27,9 @@ export function createState(registry, initial = {}) {
     set(id, rawValue) {
       const item = registry.getItem(id);
       if (!item) throw new Error(`Unknown item: ${id}`);
-      responses[id] = item.type === 'multi' ? scoreMulti(item, rawValue) : scoreSingle(item, rawValue);
+      if (item.type === 'multi') responses[id] = scoreMulti(item, rawValue);
+      else if (item.type === 'date') responses[id] = scoreDate(rawValue);
+      else responses[id] = scoreSingle(item, rawValue);
       return state;
     },
 
@@ -64,11 +66,33 @@ export function createState(registry, initial = {}) {
       return ids.filter((id) => (state.scoreOf(id) ?? 0) >= threshold).length;
     },
 
+    /**
+     * Weeks since birth. A date of birth gives the real figure; the coarse
+     * band is only a fallback for someone who would rather not give one.
+     */
     get weeksPostpartum() {
+      const exact = state.weeksFromBirthDate;
+      if (exact != null) return exact;
       const chosen = responses.ctx_stage?.value;
       if (!chosen || chosen === PNA) return null;
       const option = registry.getItem('ctx_stage').options.find((o) => o.value === chosen);
       return option?.weeks ?? null;
+    },
+
+    get weeksFromBirthDate() {
+      const value = responses.ctx_birth_date?.value;
+      if (!value || value === PNA) return null;
+      const born = new Date(`${value}T00:00:00`);
+      if (Number.isNaN(born.getTime())) return null;
+      const days = (Date.now() - born.getTime()) / 86400000;
+      // A date in the future is a typo, not a pregnancy; treat it as unusable.
+      if (days < 0) return null;
+      return days / 7;
+    },
+
+    get birthDate() {
+      const value = responses.ctx_birth_date?.value;
+      return value && value !== PNA ? value : null;
     },
 
     /** Raw (unnormalised) sum for a domain, used by conditional items. */
@@ -95,6 +119,10 @@ function scoreSingle(item, value) {
     flags: option?.flags ?? [],
     notApplicable: Boolean(option?.notApplicable) || value === 'na',
   };
+}
+
+function scoreDate(value) {
+  return { value, score: null, flags: [], notApplicable: false };
 }
 
 function scoreMulti(item, values) {

@@ -1,6 +1,6 @@
 # Postpartum Check-Up
 
-An evidence-informed postpartum mental-health **check-up and navigation tool**. It helps a parent in the first year after birth reflect on what they are experiencing, recognise patterns that may warrant support, and work out what level of care to seek.
+An evidence-informed postpartum mental-health **check-up and navigation tool**. It helps a parent in the first year after birth reflect on what they are experiencing, recognize patterns that may warrant support, and work out what level of care to seek.
 
 It is **not** a diagnostic instrument. It produces screening observations, symptom patterns, and next steps — never a diagnosis.
 
@@ -17,7 +17,7 @@ Everything runs in the browser. There is no backend, no account, and no analytic
 
 The check-up runs in this order, and the order is the point:
 
-1. **Context** — stage, birth, feeding, sleep, work, stressors, support. Contextual only; no circumstance is treated as inherently healthier than another.
+1. **Context** — the baby's date of birth (which gives the exact stage; a coarse band is the fallback if someone would rather not give a date), birth, feeding, sleep, work, stressors, support. Contextual only; no circumstance is treated as inherently healthier than another.
 2. **Safety** — asked of everyone, before any symptom scoring. Self-harm, harm towards others, capacity to keep everyone safe, and reality testing.
 3. **Symptom modules** — baby blues (early weeks only), depression, anxiety, perinatal OCD, birth trauma, bipolar spectrum, adjustment, grief, physical contributors, and the support context.
 4. **Scenarios** — stage-matched everyday situations, from birth through the first birthday.
@@ -43,6 +43,8 @@ A full run is around 90 questions; conditional gates (trauma, grief, baby blues,
 ## Design rules the code enforces
 
 - **Safety outranks scoring.** `evaluateSafety()` runs first and can halt ordinary scoring entirely. A low depression score never cancels a psychosis warning sign — there is a test for exactly that.
+- **A safety flag interrupts when it happens, not at the end.** The level is re-checked after every section, because safety-relevant answers are not confined to the safety screen — the insight question sits in the OCD module, the household-safety question in the support module. Urgent flags interrupt as well as emergencies, and either way the person chooses whether to finish: being told something needs attention is not a reason to lose the rest of what they came to say.
+- **A cap is a ceiling.** Caps are held back and applied after every other adjustment, so a later floor ("persistent for more than three months") can no longer overrule the cardinal-symptom rule. Where a band is held down but the symptom load behind it is real, both summaries say so rather than burying it.
 - **Skipped is not zero.** Declined questions are dropped from both the numerator and the denominator, so opting out never quietly reads as "no symptoms".
 - **Cardinal symptoms gate a pattern.** A module cannot report a notable pattern on peripheral items alone; without one of its defining symptoms it is capped.
 - **Severity is never just a number.** Bands are adjusted by explicit, logged modifiers — duration, trajectory, controllability, time consumed, avoidance — and every adjustment is shown to the user in plain language.
@@ -67,7 +69,7 @@ This repository is a working reference implementation, not a deployable clinical
 - Have the safety pathway reviewed and signed off by licensed clinicians in the jurisdiction it serves.
 - Replace `src/data/resources.js` with verified, location-specific crisis resources, and re-verify them on a schedule.
 - Decide and document what happens when someone triggers the emergency pathway — a live handoff, a warm line, an escalation contact — rather than leaving a screen of text as the whole response.
-- Review the wording with people who have lived experience of perinatal mental illness, and with a perinatal loss organisation for the grief module.
+- Review the wording with people who have lived experience of perinatal mental illness, and with a perinatal loss organization for the grief module.
 - Consider regulatory posture: depending on jurisdiction and claims, screening software can fall under medical-device rules.
 - Test with screen readers, at 200% zoom, and on a cheap phone at 3am.
 

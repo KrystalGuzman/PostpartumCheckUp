@@ -34,7 +34,7 @@ const DOMAIN_LANGUAGE = {
     low: 'Your responses show some worry and vigilance, which is a normal part of caring for a baby. Keep an eye on whether it becomes harder to control.',
   },
   ocd: {
-    high: 'Your responses show a pattern of intrusive thoughts and repetitive behaviours that can occur with postpartum OCD. Consider discussing this pattern with a qualified mental-health professional.',
+    high: 'Your responses show a pattern of intrusive thoughts and repetitive behaviors that can occur with postpartum OCD. Consider discussing this pattern with a qualified mental-health professional.',
     moderate:
       'Your responses show unwanted intrusive thoughts together with checking, reassurance-seeking, or mental rituals — a pattern that can occur with postpartum OCD. A professional familiar with perinatal OCD can assess it properly.',
     low: 'Your responses mention unwanted intrusive thoughts. These are reported by a large share of new parents and are not a sign of danger, though they are worth mentioning if they become more frequent or start shaping what you do.',
@@ -85,36 +85,82 @@ const BABY_BLUES_CONSISTENT =
 const NORMAL_ADJUSTMENT =
   'Much of what you describe sits within the range of common postpartum adjustment — the fatigue, the shifting sense of who you are, the stretches of feeling out of your depth. Saying that is not the same as saying it should be easy, and it is not a reason to go without support if you want it.';
 
+const REALITY_TESTING_NOTE =
+  'You answered yes to at least one question about experiences that can involve losing touch with what is real — things others did not perceive, beliefs others contradicted, or ordinary events seeming to carry a message. A single "once or twice" is not a diagnosis of anything, and there are ordinary explanations, exhaustion among them. It is on this page because it is the one category where waiting is the wrong call: it should be assessed by a professional soon, in days rather than months, and sooner still if it becomes more frequent.';
+
 const INTRUSIVE_THOUGHTS_NOTE =
   'You mentioned unwanted, frightening thoughts about harm. Thoughts like these are reported by a very large share of new parents. An intrusive thought is not an intention and not a prediction, and the distress they cause you is itself evidence of how far they sit from what you want. They are also very treatable — clinicians who work in perinatal mental health hear about them constantly.';
 
-export function stageSentence(weeks) {
+/** Your baby's age in the units a parent actually uses for it. */
+export function describeAge(weeks) {
+  if (weeks == null) return null;
+  const days = Math.round(weeks * 7);
+  if (days < 14) return `${days} day${days === 1 ? '' : 's'} old`;
+  if (weeks < 9) return `${Math.round(weeks)} weeks old`;
+
+  let months = Math.floor(weeks / 4.348);
+  let spareWeeks = Math.round(weeks - months * 4.348);
+  if (spareWeeks >= 4) {
+    months += 1;
+    spareWeeks = 0;
+  }
+  if (months >= 12) {
+    const years = Math.floor(months / 12);
+    const rest = months % 12;
+    const yearPart = `${years} year${years === 1 ? '' : 's'}`;
+    return rest ? `${yearPart} and ${rest} month${rest === 1 ? '' : 's'} old` : `${yearPart} old`;
+  }
+  return spareWeeks >= 1
+    ? `${months} months and ${spareWeeks} week${spareWeeks === 1 ? '' : 's'} old`
+    : `${months} months old`;
+}
+
+function roughStage(weeks) {
+  if (weeks < 2) return 'the first couple of weeks';
+  if (weeks < 9) return `${Math.round(weeks)} weeks`;
+  const months = Math.round(weeks / 4.348);
+  return months >= 12 ? 'a year or more' : `${months} months`;
+}
+
+export function stageSentence(weeks, exact = false) {
   if (weeks == null) return 'You did not say how far postpartum you are.';
+  if (exact) {
+    const stage = roughStage(weeks);
+    return stage === 'the first couple of weeks'
+      ? `Your baby is ${describeAge(weeks)}, so you are in the first couple of weeks postpartum.`
+      : `Your baby is ${describeAge(weeks)}, which puts you about ${stage} postpartum.`;
+  }
   if (weeks < 2) return 'You are in the first couple of weeks postpartum.';
   if (weeks < 9) return `You are approximately ${Math.round(weeks)} weeks postpartum.`;
-  const months = Math.round(weeks / 4.35);
+  const months = Math.round(weeks / 4.348);
   if (months >= 12) return 'You are around a year or more postpartum.';
   return `You are approximately ${months} months postpartum.`;
 }
 
 export function buildResults(scored, state, regionId = 'us') {
   const region = getRegion(regionId);
-  const { safety, severity, functioning, ranked, bipolar, babyBlues, drivers } = scored;
+  const { safety, severity, functioning, rankedSymptoms, rankedContext, bipolar, babyBlues, drivers } = scored;
 
   const emergency = safety.stopScoring;
 
-  const patterns = emergency
-    ? []
-    : ranked
-        .filter((d) => !(d.domain === 'baby_blues' && babyBlues.consistent))
-        .map((d) => ({
-          domain: d.domain,
-          label: d.label,
-          band: d.band,
-          kind: d.kind,
-          statement: DOMAIN_LANGUAGE[d.domain]?.[d.band] ?? DOMAIN_LANGUAGE[d.domain]?.low ?? '',
-          modifiers: d.modifiers,
-        }));
+  const describe = (d) => ({
+    domain: d.domain,
+    label: d.label,
+    band: d.band,
+    kind: d.kind,
+    statement: DOMAIN_LANGUAGE[d.domain]?.[d.band] ?? DOMAIN_LANGUAGE[d.domain]?.low ?? '',
+    // A band held down by the cardinal-symptom rule can still sit on top of a
+    // real symptom load. Saying so is the difference between a rule that
+    // protects against over-reading and one that buries what someone reported.
+    reviewNote: d.cappedButLoaded
+      ? `You endorsed a good number of symptoms here, but ${d.cardinalLabel ?? 'the symptoms this pattern is defined by'} did not come through in your answers, so this check-up holds the pattern at a low reading. That is a limit of the questionnaire, not a verdict on what you described — it is worth putting in front of a professional rather than setting aside.`
+      : null,
+    modifiers: d.modifiers,
+  });
+
+  const visible = (list) => list.filter((d) => !(d.domain === 'baby_blues' && babyBlues.consistent)).map(describe);
+  const patterns = emergency ? [] : visible(rankedSymptoms);
+  const contextPatterns = emergency ? [] : visible(rankedContext);
 
   const notes = [];
   if (!emergency) {
@@ -126,6 +172,7 @@ export function buildResults(scored, state, regionId = 'us') {
     }
     if (patterns.length === 0 || patterns.every((p) => p.band === 'low')) notes.push(NORMAL_ADJUSTMENT);
     if (safety.intrusiveHarmThoughts) notes.push(INTRUSIVE_THOUGHTS_NOTE);
+    if (safety.reasons.some((r) => r.code === 'psychosis_possible')) notes.push(REALITY_TESTING_NOTE);
     if (bipolar.warning) notes.push(medicationCautionNote());
   }
 
@@ -136,7 +183,7 @@ export function buildResults(scored, state, regionId = 'us') {
       : null,
     statement: emergency ? EMERGENCY_STATEMENT : null,
     psychosisNote: emergency && safety.reasons.some((r) => r.code.startsWith('psychosis')) ? PSYCHOSIS_STATEMENT : null,
-    stage: stageSentence(scored.weeksPostpartum),
+    stage: stageSentence(scored.weeksPostpartum, scored.exactAge),
     severity,
     severityDrivers: drivers,
     functionalImpact: {
@@ -145,6 +192,7 @@ export function buildResults(scored, state, regionId = 'us') {
       hardest: functioning.hardest.slice(0, 4),
     },
     patterns,
+    contextPatterns,
     lowConcernStatement: !emergency && severity.key === 'green' ? LOW_CONCERN_STATEMENT : null,
     notes: notes.filter(Boolean),
     warnings: safety.reasons.filter((r) => r.level !== 'none'),
@@ -233,7 +281,7 @@ function buildNextSteps(scored, state, region) {
   if ((state.scoreOf('med_symptoms') ?? 0) > 0) {
     steps.push({
       priority: 'medium',
-      text: `Get the physical symptoms you mentioned looked at — bloods for anaemia and thyroid function are routine and can matter here. Speak to ${providerRoutes.primary}.`,
+      text: `Get the physical symptoms you mentioned looked at — bloods for anemia and thyroid function are routine and can matter here. Speak to ${providerRoutes.primary}.`,
     });
   }
   if (['no', 'downplayed'].includes(state.valueOf('med_discussed'))) {

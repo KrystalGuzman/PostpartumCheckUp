@@ -8,7 +8,7 @@
 
 import { registry, applicableSections, visibleItems, progress } from '../engine/questionnaire.js';
 import { createState, applyExclusive } from '../engine/state.js';
-import { evaluateSafety } from '../engine/safety.js';
+import { evaluateSafety, levelRank } from '../engine/safety.js';
 import { scoreAll } from '../engine/scoring.js';
 import { buildResults } from '../engine/results.js';
 import { toPlainText, toProviderText } from '../engine/summaryText.js';
@@ -24,7 +24,10 @@ const ui = {
   sectionId: null,
   region: 'us',
   save: false,
-  emergencyAcknowledged: false,
+  /** Highest safety level already put in front of the person, so a rise interrupts again. */
+  safetyAcknowledged: 'none',
+  alertLevel: 'none',
+  pendingSectionId: null,
   /** Which summary is on screen: the one written for the parent, or the handout. */
   view: 'me',
   /** Optional, for the top of a printed handout. Never leaves the device. */
@@ -82,7 +85,7 @@ function render({ preserveFocus = false } = {}) {
 
   if (ui.screen === 'intro') app.innerHTML = introScreen();
   else if (ui.screen === 'section') app.innerHTML = sectionScreen();
-  else if (ui.screen === 'emergency') app.innerHTML = emergencyScreen();
+  else if (ui.screen === 'safetyAlert') app.innerHTML = safetyAlertScreen();
   else app.innerHTML = resultsScreen();
 
   if (focusId) {
@@ -164,6 +167,7 @@ function sectionScreen() {
 }
 
 function itemCard(item) {
+  if (item.type === 'date') return dateCard(item);
   const answer = state.responses[item.id];
   const selected = answer ? (Array.isArray(answer.value) ? answer.value : [answer.value]) : [];
   const type = item.type === 'multi' ? 'checkbox' : 'radio';
@@ -187,22 +191,73 @@ function itemCard(item) {
     </div>`;
 }
 
-function emergencyScreen() {
+/**
+ * Shown as soon as the answers warrant it, not saved up for the end. Two
+ * levels: an emergency halts ordinary scoring, an urgent flag does not. Either
+ * way the person chooses whether to finish the check-up — being told something
+ * needs attention is not a reason to lose the rest of what they came to say.
+ */
+function dateCard(item) {
+  const value = state.valueOf(item.id);
+  const declined = value === 'pna';
+  const max = typeof item.max === 'function' ? item.max() : item.max;
+  return `
+    <div class="card">
+      <p class="q" id="q_${esc(item.id)}">${esc(item.text)}</p>
+      ${item.help ? `<p class="help">${esc(item.help)}</p>` : ''}
+      <input type="date" class="datefield" id="${esc(item.id)}__date" data-item="${esc(item.id)}"
+        aria-labelledby="q_${esc(item.id)}"
+        value="${declined ? '' : esc(value ?? '')}"
+        ${max ? `max="${esc(max)}"` : ''} ${item.min ? `min="${esc(item.min)}"` : ''} />
+      <div class="options">
+        <label class="option pna" data-checked="${declined}">
+          <input type="checkbox" id="${esc(item.id)}__pna" data-item="${esc(item.id)}" data-pna="true" ${declined ? 'checked' : ''} />
+          <span class="label">Prefer not to answer</span>
+        </label>
+      </div>
+    </div>`;
+}
+
+function safetyAlertScreen() {
   const safety = evaluateSafety(state);
   const region = regions.find((r) => r.id === ui.region) ?? regions[0];
+  const emergency = ui.alertLevel === 'emergency';
+  const reasons = safety.reasons.filter((r) => r.level === 'emergency' || r.level === 'urgent');
+
   return `
-    <h1 tabindex="-1">Please read this before going any further</h1>
+    <h1 tabindex="-1">${emergency ? 'Please read this before going any further' : 'Worth stopping on for a moment'}</h1>
     <div class="notice urgent">
-      <p>Some of your responses indicate symptoms that can require urgent professional assessment. This check-up cannot determine the cause of these symptoms. Please seek immediate medical or psychiatric evaluation and involve a trusted adult or support person. If there is immediate danger, contact emergency services or go to the nearest emergency department.</p>
-      <p>This is not a judgment about you, and it does not mean you are a bad parent or that your baby will be taken from you. It means some of what you described needs a person, not a questionnaire.</p>
+      ${
+        emergency
+          ? `<p>Some of your responses indicate symptoms that can require urgent professional assessment. This check-up cannot determine the cause of these symptoms. Please seek immediate medical or psychiatric evaluation and involve a trusted adult or support person. If there is immediate danger, contact emergency services or go to the nearest emergency department.</p>`
+          : `<p>Some of what you have answered needs prompt professional assessment — days rather than months. That does not mean an emergency, and it does not mean you have done anything wrong. It means this part is better looked at by a person than finished by a questionnaire.</p>`
+      }
+      <p>This is not a judgment about you. It does not mean you are a bad parent, and it does not mean your baby will be taken from you.</p>
     </div>
-    ${resourceBlock(region)}
+
     <h2>What flagged this</h2>
-    <ul class="plain">${safety.reasons.filter((r) => r.level === 'emergency' || r.level === 'urgent').map((r) => `<li>${esc(r.label)}</li>`).join('')}</ul>
-    <p class="small muted">Ordinary scoring has been stopped. A low score elsewhere in this check-up would not change what is written above.</p>
+    <ul class="plain">${reasons.map((r) => `<li>${esc(r.label)}</li>`).join('')}</ul>
+
+    ${resourceBlock(region)}
+
+    <div class="notice">
+      <h2 style="margin-top:0">You can still finish the check-up</h2>
+      <p>${
+        emergency
+          ? 'Ordinary scoring has stopped, and nothing you answer from here will change what is written above — a low score elsewhere would not cancel it.'
+          : 'Nothing you answer from here will cancel what is above.'
+      } But the rest of the questions are still worth answering: the fuller picture is more useful to whoever you show it to, and it is your account of what is happening. Answer it as honestly as you can.</p>
+      <p class="small muted">${ui.pendingSectionId ? 'You have more sections left.' : 'You have reached the end of the questions.'} You can also come back to them from your summary.</p>
+    </div>
+
     <div class="actions no-print">
-      <button class="primary" data-action="results">Go to my summary</button>
-      <button data-action="continue-anyway">Answer the remaining questions first</button>
+      ${
+        emergency
+          ? `<button class="primary" data-action="alert-summary">Go to my summary now</button>
+             <button data-action="alert-continue">${ui.pendingSectionId ? 'Answer the remaining questions first' : 'Go to my summary'}</button>`
+          : `<button class="primary" data-action="alert-continue">${ui.pendingSectionId ? 'Keep going with the check-up' : 'Go to my summary'}</button>
+             <button data-action="alert-summary">Stop here and show my summary</button>`
+      }
     </div>
     ${footnote()}
   `;
@@ -331,10 +386,52 @@ function parentSummary(results) {
   `;
 }
 
+function patternCard(p) {
+  return `<div class="pattern">
+    <div class="head"><span class="name">${esc(p.label)}</span><span class="band" data-band="${esc(p.band)}">${esc(p.band)}</span></div>
+    <p style="margin:0">${esc(p.statement)}</p>
+    ${p.reviewNote ? `<p style="margin:.6rem 0 0">${esc(p.reviewNote)}</p>` : ''}
+    ${
+      p.modifiers.length
+        ? `<p class="small muted" style="margin:.5rem 0 0">Adjusted because ${esc(p.modifiers.map((m) => m.reason).join('; '))}.</p>`
+        : ''
+    }
+  </div>`;
+}
+
 /** The clinician handout: what was answered, not a retelling of it. */
 function providerDoc(scored, results) {
   const provider = buildProviderSummary(scored, state, { completedAt: ui.completedAt, name: ui.name });
-  const { meta, safety, patterns, functioning, context, scenarioResponses, bipolar } = provider;
+  const { meta, safety, patterns, contextPatterns, functioning, context, scenarioResponses, bipolar } = provider;
+
+  const patternBlock = (p) => `<div class="pattern">
+    <div class="head">
+      <span class="name">${esc(p.label)}</span>
+      <span class="band" data-band="${esc(p.band)}">${esc(p.band)}${p.percent == null ? '' : ` · ${p.raw}/${p.max} (${p.percent}%)`}</span>
+    </div>
+    ${p.modifiers
+      .map((m) => `<p class="small muted" style="margin:.2rem 0">${esc(m.effect)}: ${esc(m.reason)}.</p>`)
+      .join('')}
+    ${
+      p.cappedButLoaded
+        ? '<p class="small" style="margin:.2rem 0"><strong>Note:</strong> symptom load here is substantial despite the capped band.</p>'
+        : ''
+    }
+    ${
+      p.endorsed.length
+        ? `<ul class="items">${p.endorsed
+            .map((e) => `<li><span class="score">${e.score}</span> ${esc(e.text)} — <em>${esc(e.answer)}</em></li>`)
+            .join('')}</ul>`
+        : '<p class="small muted" style="margin:.2rem 0">Nothing endorsed in this module.</p>'
+    }
+    ${
+      p.contextual.length
+        ? `<ul class="items context">${p.contextual
+            .map((c) => `<li>${esc(c.text)} — <em>${esc(c.answer)}</em></li>`)
+            .join('')}</ul>`
+        : ''
+    }
+  </div>`;
 
   return `
     <header class="doc-head">
@@ -344,7 +441,7 @@ function providerDoc(scored, results) {
         ${meta.name ? `<div><dt>Completed by</dt><dd>${esc(meta.name)}</dd></div>` : ''}
         <div><dt>Completed</dt><dd>${esc(meta.completedAtLabel)}</dd></div>
         <div><dt>Stage</dt><dd>${esc(meta.stage)}</dd></div>
-        <div><dt>Overall</dt><dd>${meta.severity.icon} ${esc(meta.severity.label)}</dd></div>
+        <div><dt>Overall</dt><dd><span class="icon">${meta.severity.icon}</span>${esc(meta.severity.label)}</dd></div>
         <div><dt>Functional impact</dt><dd>${esc(functioning.label)}</dd></div>
       </dl>
       ${meta.drivers.length ? `<p class="small">Driven by ${esc(meta.drivers.join('; '))}.</p>` : ''}
@@ -387,37 +484,14 @@ function providerDoc(scored, results) {
 
     <section>
       <h2>Symptom patterns</h2>
-      ${patterns
-        .map(
-          (p) => `<div class="pattern">
-            <div class="head">
-              <span class="name">${esc(p.label)}</span>
-              <span class="band" data-band="${esc(p.band)}">${esc(p.band)}${
-                p.percent == null ? '' : ` · ${p.raw}/${p.max} (${p.percent}%)`
-              }</span>
-            </div>
-            ${p.cardinalMet ? '' : '<p class="small muted" style="margin:.2rem 0">Cardinal symptoms not endorsed; band capped.</p>'}
-            ${p.modifiers
-              .map((m) => `<p class="small muted" style="margin:.2rem 0">Adjusted — ${esc(m.effect)}: ${esc(m.reason)}.</p>`)
-              .join('')}
-            ${
-              p.endorsed.length
-                ? `<ul class="items">${p.endorsed
-                    .map((e) => `<li><span class="score">${e.score}</span> ${esc(e.text)} — <em>${esc(e.answer)}</em></li>`)
-                    .join('')}</ul>`
-                : '<p class="small muted" style="margin:.2rem 0">Nothing endorsed in this module.</p>'
-            }
-            ${
-              p.contextual.length
-                ? `<ul class="items context">${p.contextual
-                    .map((c) => `<li>${esc(c.text)} — <em>${esc(c.answer)}</em></li>`)
-                    .join('')}</ul>`
-                : ''
-            }
-          </div>`,
-        )
-        .join('')}
+      ${patterns.map(patternBlock).join('')}
     </section>
+
+    ${
+      contextPatterns.length
+        ? `<section><h2>Context and circumstances</h2>${contextPatterns.map(patternBlock).join('')}</section>`
+        : ''
+    }
 
     ${
       bipolar.warning
@@ -447,7 +521,7 @@ function providerDoc(scored, results) {
     </section>
 
     <section>
-      <h2>Context</h2>
+      <h2>Situation</h2>
       <table class="doc-table">
         <tbody>${context.map((c) => `<tr><th scope="row">${esc(c.text)}</th><td>${esc(c.answer)}</td></tr>`).join('')}</tbody>
       </table>
@@ -541,7 +615,16 @@ app.addEventListener('change', (event) => {
   const item = registry.getItem(itemId);
   if (!item) return;
 
-  if (item.type === 'multi') {
+  if (item.type === 'date') {
+    if (input.dataset.pna) {
+      if (input.checked) state.set(itemId, 'pna');
+      else state.clear(itemId);
+    } else if (input.value) {
+      state.set(itemId, input.value);
+    } else {
+      state.clear(itemId);
+    }
+  } else if (item.type === 'multi') {
     const previous = state.valueOf(itemId) ?? [];
     state.set(itemId, applyExclusive(item, previous, input.value));
   } else {
@@ -561,26 +644,39 @@ app.addEventListener('click', (event) => {
     ui.sectionId = applicableSections(state)[0].id;
   } else if (action === 'intro') {
     ui.screen = 'intro';
-  } else if (action === 'next' || action === 'back') {
+  } else if (action === 'back') {
     const list = applicableSections(state);
     const index = list.findIndex((s) => s.id === ui.sectionId);
-    const nextIndex = action === 'next' ? index + 1 : index - 1;
-
-    if (action === 'next' && list[index]?.id === 'safety' && !ui.emergencyAcknowledged && evaluateSafety(state).stopScoring) {
-      ui.screen = 'emergency';
-    } else if (nextIndex >= list.length) {
-      ui.screen = 'results';
-    } else if (nextIndex < 0) {
-      ui.screen = 'intro';
-    } else {
-      ui.sectionId = list[nextIndex].id;
-    }
-  } else if (action === 'continue-anyway') {
-    ui.emergencyAcknowledged = true;
+    if (index <= 0) ui.screen = 'intro';
+    else ui.sectionId = list[index - 1].id;
+  } else if (action === 'next') {
     const list = applicableSections(state);
-    const index = list.findIndex((s) => s.id === 'safety');
-    ui.screen = 'section';
-    ui.sectionId = list[Math.min(index + 1, list.length - 1)].id;
+    const index = list.findIndex((s) => s.id === ui.sectionId);
+    const target = index + 1 >= list.length ? null : list[index + 1].id;
+
+    // Safety-relevant answers are not confined to the safety section — the
+    // insight question sits in the OCD module and the household-safety question
+    // in the support module — so the level is re-checked after every section
+    // and a rise interrupts as soon as it happens.
+    const level = evaluateSafety(state).level;
+    if (levelRank(level) >= levelRank('urgent') && levelRank(level) > levelRank(ui.safetyAcknowledged)) {
+      ui.alertLevel = level;
+      ui.pendingSectionId = target;
+      ui.screen = 'safetyAlert';
+    } else if (!target) {
+      ui.screen = 'results';
+    } else {
+      ui.sectionId = target;
+    }
+  } else if (action === 'alert-continue' || action === 'alert-summary') {
+    ui.safetyAcknowledged = ui.alertLevel;
+    if (action === 'alert-continue' && ui.pendingSectionId) {
+      ui.screen = 'section';
+      ui.sectionId = ui.pendingSectionId;
+    } else {
+      ui.screen = 'results';
+    }
+    ui.pendingSectionId = null;
   } else if (action === 'results') {
     ui.screen = 'results';
   } else if (action === 'review') {
@@ -605,7 +701,9 @@ app.addEventListener('click', (event) => {
     for (const id of Object.keys(state.responses)) state.clear(id);
     forget();
     ui.save = false;
-    ui.emergencyAcknowledged = false;
+    ui.safetyAcknowledged = 'none';
+    ui.alertLevel = 'none';
+    ui.pendingSectionId = null;
     ui.screen = 'intro';
   }
 

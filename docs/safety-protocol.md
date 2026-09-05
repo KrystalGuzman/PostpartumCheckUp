@@ -16,6 +16,12 @@ The safety screen runs before any symptom scoring and outranks all of it. Implem
 
 An overall positive picture never cancels a warning sign. Someone can score low on depression and still show possible psychosis; the psychosis finding wins, ordinary scoring stops, and the summary says so rather than reporting that nothing stood out.
 
+## When the person is told
+
+As soon as the answers warrant it, not at the end. The level is re-evaluated after every section, because safety-relevant answers are not confined to the safety screen: the insight question sits in the OCD module and the household-safety question in the support module. A rise to `urgent` or `emergency` interrupts immediately, and a later rise interrupts again.
+
+An interruption always offers both paths. Emergency defaults to going straight to the summary and its instructions; urgent defaults to carrying on. Either way the choice is the person's — being told something needs attention is not a reason to lose the rest of what they came to say, and the interruption says so: nothing answered afterwards cancels the flag, and the fuller picture is more useful to whoever they show it to.
+
 ## Levels
 
 | Level | Effect |

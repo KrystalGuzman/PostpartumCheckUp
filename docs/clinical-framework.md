@@ -27,7 +27,7 @@ ratio = raw / max
 band  = minimal (<.17) · low (<.34) · moderate (<.55) · high (≥.55)
 ```
 
-Then explicit modifiers apply, each logged with a plain-language reason that is shown to the user:
+Then explicit modifiers apply, each logged with a plain-language reason that is shown to the user. Floors and steps apply first; **caps are held back and applied last, as a ceiling**, so that a floor can never quietly overrule the cardinal-symptom rule:
 
 | Module | Modifier |
 |---|---|
@@ -37,11 +37,13 @@ Then explicit modifiers apply, each logged with a plain-language reason that is 
 | Trauma | intrusion *and* avoidance together floor at moderate |
 | Baby blues | worsening raises a band; no relief between low moments floors at moderate |
 | Adjustment | distress that does not lift when the pressure lifts caps at moderate, since it may not be stress-linked alone |
+| Every module | five or more symptoms endorsed at the top of the scale floor at high, three or more at moderate — several maximal answers should not be diluted by the items someone answered "not at all" |
 
 Two rules apply everywhere:
 
 - **Prorating.** Declined and inapplicable answers leave both `raw` and `max`, so skipping is never read as an implicit "no".
-- **Cardinal symptoms.** Each module names the symptoms it is defined by. Without at least one endorsed at "more days than not", the band is capped at low, however many peripheral items are endorsed. This is what stops "tired, distracted, and not eating much" from being reported as a depression pattern.
+- **Cardinal symptoms.** Each module names the symptoms it is defined by. The rule is met by one endorsed at "more days than not", **or by two present at any level** — several mild cardinal symptoms still make the pattern, and requiring a single strong one missed people whose symptoms were spread thin. Otherwise the band is capped at low, however many peripheral items are endorsed. This is what stops "tired, distracted, and not eating much" from being reported as a depression pattern.
+- **A cap is not a dismissal.** Where the cardinal rule holds a band down but the underlying ratio is moderate or higher, both summaries carry an explicit note naming the missing cardinal symptoms and saying the load is worth a clinician's eye. The rule protects against over-reading; it must not bury what someone reported.
 
 ---
 
@@ -81,9 +83,9 @@ Gated on an event screen that includes the ones clinicians miss: feeling powerle
 
 ### Bipolar spectrum (Part 9)
 
-Present because missing it is dangerous: antidepressant monotherapy in undetected bipolar disorder can precipitate a manic episode, and postpartum onset is a recognised high-risk window. The defining item is **decreased need for sleep** — sleeping little and feeling fine — written to be unmistakably different from being exhausted by a waking baby.
+Present because missing it is dangerous: antidepressant monotherapy in undetected bipolar disorder can precipitate a manic episode, and postpartum onset is a recognized high-risk window. The defining item is **decreased need for sleep** — sleeping little and feeling fine — written to be unmistakably different from being exhausted by a waking baby.
 
-A warning is raised when reduced need for sleep occurs with elevated or irritable mood and other features, or when several features clustered in one period caused real problems. A warning forces at least amber overall and generates a specific next step: assessment before any antidepressant is started or changed. Personal and family history are collected as risk context.
+Reduced need for sleep is the gate — exhaustion cannot reach the warning however much irritability or racing thought accompanies it. Past that gate a warning is raised when features clustered in one period, counting several mild features as heavily as a couple of severe ones, since an early screen that demands severity on every item misses the presentations most likely to be dismissed as tiredness. A warning forces at least amber overall and generates a specific next step: assessment before any antidepressant is started or changed. Personal and family history are collected as risk context.
 
 ### Postpartum psychosis (Part 10)
 
@@ -99,7 +101,7 @@ Gated on a loss screen that includes losses often left unnamed: the expected bir
 
 ### Physical and medical contributors (Part 13)
 
-A checklist of physical symptoms that can drive mood and energy — bleeding, anaemia signs, thyroid signs, pain, infection, blood-pressure warning signs, chronic illness, medication changes, nutrition, substance use — plus whether the person has actually told a clinician the full picture, and whether they have had a postpartum check-up. Endorsements produce a medical next step, not a psychiatric one. The tool diagnoses nothing here; it flags what a clinician should rule out.
+A checklist of physical symptoms that can drive mood and energy — bleeding, anemia signs, thyroid signs, pain, infection, blood-pressure warning signs, chronic illness, medication changes, nutrition, substance use — plus whether the person has actually told a clinician the full picture, and whether they have had a postpartum check-up. Endorsements produce a medical next step, not a psychiatric one. The tool diagnoses nothing here; it flags what a clinician should rule out.
 
 ### Scenarios (Part 14)
 
@@ -107,7 +109,7 @@ Stage-matched situations across birth, the first month, months 2–3, 4–6, and
 
 ### Relationship and support (Part 15)
 
-Collected as **context, not symptoms**: night division, practical and emotional support, ongoing conflict, being judged or dismissed, isolation, feeling alone within a relationship, and whether the person feels safe with the people they live with. That last item raises a flag and produces a route to confidential advocacy; it never appears as a psychiatric finding.
+Reported under its own heading, never among the strongest patterns: a module of circumstances must not head a list a parent reads as a list of things wrong with them. Collected as **context, not symptoms**: night division, practical and emotional support, ongoing conflict, being judged or dismissed, isolation, feeling alone within a relationship, and whether the person feels safe with the people they live with. That last item raises a flag and produces a route to confidential advocacy; it never appears as a psychiatric finding.
 
 ### Functioning (Part 16)
 

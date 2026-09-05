@@ -43,14 +43,18 @@ export function toPlainText(results, { includeResources = true } = {}) {
     rule();
   }
 
-  if (results.patterns.length) {
-    lines.push('STRONGEST PATTERNS');
-    results.patterns.forEach((p) => {
+  const patternBlock = (title, list) => {
+    if (!list.length) return;
+    lines.push(title);
+    list.forEach((p) => {
       lines.push(bullet(`${p.label} (${p.band})`));
       lines.push(`  ${wrap(p.statement, '  ', 76)}`);
+      if (p.reviewNote) lines.push(`  ${wrap(p.reviewNote, '  ', 76)}`);
     });
     rule();
-  }
+  };
+  patternBlock('STRONGEST PATTERNS', results.patterns);
+  patternBlock('CONTEXT AROUND YOU', results.contextPatterns ?? []);
 
   if (results.lowConcernStatement) {
     lines.push(wrap(results.lowConcernStatement));
@@ -160,16 +164,23 @@ export function toProviderText(provider) {
   }
   rule();
 
-  heading('Symptom patterns');
-  provider.patterns.forEach((p) => {
-    const scoreLine = p.percent == null ? 'no scored items answered' : `${p.raw}/${p.max} = ${p.percent}%`;
-    lines.push(`${p.label}: ${p.band.toUpperCase()} (${scoreLine}, ${p.answeredCount} items answered)`);
-    if (!p.cardinalMet) lines.push('    Cardinal symptoms not endorsed; band capped.');
-    p.modifiers.forEach((m) => lines.push(`    Adjusted — ${m.effect}: ${wrap(m.reason, '    ', 68)}`));
-    p.endorsed.forEach((e) => lines.push(`    [${e.score}] ${wrap(`${e.text} — ${e.answer}`, '        ', 68)}`));
-    p.contextual.forEach((c) => lines.push(`    ( ) ${wrap(`${c.text} — ${c.answer}`, '        ', 68)}`));
-    rule();
-  });
+  const patternBlock = (title, list) => {
+    if (!list.length) return;
+    heading(title);
+    list.forEach((p) => {
+      const scoreLine = p.percent == null ? 'no scored items answered' : `${p.raw}/${p.max} = ${p.percent}%`;
+      lines.push(`${p.label}: ${p.band.toUpperCase()} (${scoreLine}, ${p.answeredCount} items answered)`);
+      p.modifiers.forEach((m) => lines.push(`    ${m.effect}: ${wrap(m.reason, '    ', 68)}`));
+      if (p.cappedButLoaded) {
+        lines.push(`    ${wrap('Note: symptom load here is substantial despite the capped band.', '    ', 68)}`);
+      }
+      p.endorsed.forEach((e) => lines.push(`    [${e.score}] ${wrap(`${e.text} — ${e.answer}`, '        ', 68)}`));
+      p.contextual.forEach((c) => lines.push(`    ( ) ${wrap(`${c.text} — ${c.answer}`, '        ', 68)}`));
+      rule();
+    });
+  };
+  patternBlock('Symptom patterns', provider.patterns);
+  patternBlock('Context and circumstances', provider.contextPatterns ?? []);
 
   if (provider.bipolar.warning) {
     heading('Bipolar-spectrum warning');
@@ -193,7 +204,7 @@ export function toProviderText(provider) {
     .forEach((item) => lines.push(`    [${item.score}] ${wrap(`${item.text} — ${item.answer}`, '        ', 68)}`));
   rule();
 
-  heading('Context');
+  heading('Situation');
   provider.context.forEach((c) => lines.push(bullet(`${c.text} — ${c.answer}`)));
   rule();
 

@@ -65,6 +65,7 @@ export const babyBluesModule = {
   blurb:
     'A short-lived wave of tearfulness and mood swings in the first days or weeks is common. What matters most here is timing and direction of travel.',
   cardinal: ['bb_tearful', 'bb_swings'],
+  cardinalLabel: 'tearfulness or mood swings',
   items: [
     freq('bb_tearful', 'Have you been crying easily, sometimes without a clear reason?', { score: true }),
     freq('bb_swings', 'Have your moods swung quickly — fine one hour, undone the next?', { score: true }),
@@ -119,6 +120,7 @@ export const depressionModule = {
   blurb:
     'Depression after birth does not always look like crying. For some people it looks like flatness, emptiness, or getting everything done while feeling nothing at all.',
   cardinal: ['dep_mood', 'dep_anhedonia', 'dep_numb'],
+  cardinalLabel: 'persistent low mood, loss of interest, or emotional numbness',
   items: [
     freq('dep_mood', 'Have you felt persistently low, hopeless, or heavy?', { score: true }),
     freq('dep_anhedonia', 'Have things you normally enjoy stopped giving you much of anything?', { score: true }),
@@ -181,6 +183,7 @@ export const anxietyModule = {
   blurb:
     'Some vigilance about a baby is protective and expected. This section is about worry that has become constant, hard to steer, or physically exhausting.',
   cardinal: ['anx_worry', 'anx_uncontrollable'],
+  cardinalLabel: 'frequent worry that is hard to steer',
   items: [
     freq('anx_worry', 'Have you spent much of the day worrying?', { score: true }),
     freq('anx_uncontrollable', 'Once the worry starts, is it hard to stop or steer?', { score: true }),
@@ -228,11 +231,12 @@ export const anxietyModule = {
 export const ocdModule = {
   id: 'ocd',
   domain: 'ocd',
-  title: 'Intrusive thoughts and repeated behaviours',
+  title: 'Intrusive thoughts and repeated behaviors',
   kind: 'domain',
   blurb:
     'Unwanted, frightening thoughts about harm coming to a baby are reported by a large share of new parents. Having such a thought is not the same as wanting it, and it says nothing about your intentions. These questions are about how often they come and what you find yourself doing about them.',
   cardinal: ['ocd_intrusive'],
+  cardinalLabel: 'unwanted intrusive thoughts',
   items: [
     freq('ocd_intrusive', 'Have unwanted thoughts, images, or urges about something bad happening to your baby pushed into your mind?', {
       score: true,
@@ -269,7 +273,7 @@ export const ocdModule = {
           flags: ['insight_intact'],
         },
         {
-          value: 'recognised',
+          value: 'recognized',
           label: 'It upsets me, but I can mostly see it as just a thought passing through.',
           flags: ['insight_intact'],
         },
@@ -296,7 +300,7 @@ export const ocdModule = {
     freq('ocd_mental', 'Have you replayed events in your head, counted, prayed, or mentally reviewed to make sure nothing went wrong?', {
       score: true,
     }),
-    freq('ocd_cleaning', 'Have you washed, sterilised, or cleaned far beyond what is needed?', { score: true }),
+    freq('ocd_cleaning', 'Have you washed, sterilized, or cleaned far beyond what is needed?', { score: true }),
     freq('ocd_avoid', 'Have you avoided situations — bathing, stairs, knives, being alone with the baby — because of these thoughts?', {
       score: true,
     }),
@@ -328,6 +332,7 @@ export const traumaModule = {
   blurb:
     'Birth can be frightening even when it ends well, and even when everyone around you calls it routine. Your experience of it is the thing that counts here.',
   cardinal: ['ptsd_intrusion', 'ptsd_nightmares', 'ptsd_avoid'],
+  cardinalLabel: 'intrusive memories, nightmares, or avoidance of reminders',
   items: [
     {
       id: 'ptsd_event',
@@ -337,7 +342,7 @@ export const traumaModule = {
       text: 'Did any of these happen around your birth or the days after?',
       options: [
         { value: 'frightening', label: 'It was frightening — I thought I or my baby might not be okay' },
-        { value: 'emergency', label: 'An emergency procedure or an unplanned rush to theatre' },
+        { value: 'emergency', label: 'An emergency procedure or an unplanned rush to the operating room' },
         { value: 'complication_self', label: 'A severe medical complication for me' },
         { value: 'complication_baby', label: 'A frightening medical event involving my baby' },
         { value: 'nicu', label: 'A NICU or special care stay' },
@@ -413,6 +418,7 @@ export const bipolarModule = {
   blurb:
     'This section is looking for something specific and easy to miss: stretches where your energy ran high rather than low. It matters because it changes what kind of help is safest, so it is worth answering carefully even if none of it fits.',
   cardinal: ['bip_sleep_no_need', 'bip_elevated', 'bip_irritable'],
+  cardinalLabel: 'reduced need for sleep, or a period of elevated or unusually irritable mood',
   items: [
     {
       id: 'bip_sleep_no_need',
@@ -444,7 +450,7 @@ export const bipolarModule = {
     freq('bip_confidence', 'Have you felt unusually confident, powerful, or certain you could do anything?', {
       score: true,
     }),
-    freq('bip_activity', 'Have you taken on far more than usual — projects, plans, reorganising things through the night?', {
+    freq('bip_activity', 'Have you taken on far more than usual — projects, plans, reorganizing things through the night?', {
       score: true,
     }),
     freq('bip_impulsive', 'Have you acted on impulses that were out of character — spending, decisions, risks?', {
@@ -518,6 +524,7 @@ export const adjustmentModule = {
   kind: 'domain',
   blurb: 'Some postpartum distress tracks closely with what is actually happening around you.',
   cardinal: ['adj_link'],
+  cardinalLabel: 'distress that tracks with identifiable pressures',
   items: [
     {
       id: 'adj_link',
@@ -575,7 +582,8 @@ export const griefModule = {
   kind: 'domain',
   blurb:
     'Grief is not depression, though the two can sit side by side. Some postpartum losses are obvious to everyone; others go unnamed.',
-  cardinal: ['grief_waves'],
+  cardinal: ['grief_waves', 'grief_yearning', 'grief_stuck'],
+  cardinalLabel: 'waves of sadness, longing for what was lost, or feeling stuck in it',
   items: [
     {
       id: 'grief_event',
@@ -628,7 +636,7 @@ export const griefModule = {
         { value: 'yes', label: 'Yes, and it helps' },
         { value: 'some', label: 'A little' },
         { value: 'no', label: 'No — I carry it privately' },
-        { value: 'dismissed', label: 'It has been brushed aside or minimised' },
+        { value: 'dismissed', label: 'It has been brushed aside or minimized' },
         PREFER_NOT_TO_ANSWER,
       ],
     },

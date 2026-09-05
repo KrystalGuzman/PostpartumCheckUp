@@ -24,9 +24,19 @@ export const contextSection = {
     'A few questions about where you are right now. There are no better or worse answers here — this only helps tailor the rest of the check-up.',
   items: [
     {
+      id: 'ctx_birth_date',
+      type: 'date',
+      text: "What is your baby's date of birth?",
+      help: 'Used to work out how far postpartum you are, and to choose questions that fit where you are. It stays on this device.',
+      max: () => new Date().toISOString().slice(0, 10),
+      min: '2015-01-01',
+    },
+    {
       id: 'ctx_stage',
       type: 'single',
-      text: 'How long has it been since your baby was born?',
+      // Fallback for anyone who would rather not give a date.
+      showIf: (state) => !state.answered('ctx_birth_date') || state.valueOf('ctx_birth_date') === 'pna',
+      text: 'Roughly how long has it been since your baby was born?',
       options: [
         { value: 'w0_2', label: 'Less than 2 weeks', weeks: 1 },
         { value: 'w2_6', label: '2 to 6 weeks', weeks: 4 },

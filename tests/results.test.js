@@ -52,7 +52,7 @@ test('OCD language names the pattern, not the person', () => {
 
   assert.equal(
     ocd.statement,
-    'Your responses show a pattern of intrusive thoughts and repetitive behaviours that can occur with postpartum OCD. Consider discussing this pattern with a qualified mental-health professional.',
+    'Your responses show a pattern of intrusive thoughts and repetitive behaviors that can occur with postpartum OCD. Consider discussing this pattern with a qualified mental-health professional.',
   );
 });
 
@@ -88,7 +88,7 @@ test('bipolar warning signs change the advice about medication', () => {
 
 test('physical contributors produce a medical next step rather than a psychiatric one only', () => {
   const results = build({ ctx_stage: 'm3_6', med_symptoms: ['anemia', 'thyroid'], med_checkup: 'no' });
-  assert.ok(results.nextSteps.some((s) => /anaemia and thyroid/.test(s.text)));
+  assert.ok(results.nextSteps.some((s) => /anemia and thyroid/.test(s.text)));
   assert.ok(results.providerQuestions.some((q) => /thyroid function/.test(q)));
 });
 
@@ -181,4 +181,66 @@ test('bipolar history without current warning signs is asked about without asser
   const results = build({ ctx_stage: 'm3_6', bip_history: ['family'] });
   assert.equal(results.providerQuestions.some((q) => /I have had periods of high energy/.test(q)), false);
   assert.ok(results.providerQuestions.some((q) => /bipolar disorder in my history or my family/.test(q)));
+});
+
+test("the baby's age is calculated from a date of birth, in the units parents use", async () => {
+  const { describeAge } = await import('../src/engine/results.js');
+  assert.equal(describeAge(0.5), '4 days old');
+  assert.equal(describeAge(4), '4 weeks old');
+  assert.equal(describeAge(19), '4 months and 2 weeks old');
+  assert.equal(describeAge(43.5), '10 months old');
+  assert.equal(describeAge(52), '1 year old');
+  assert.equal(describeAge(61), '1 year and 2 months old');
+});
+
+test('a date of birth gives the exact stage; the band is only a fallback', async () => {
+  const { registry } = await import('../src/engine/questionnaire.js');
+  const { createState } = await import('../src/engine/state.js');
+
+  const born = new Date(Date.now() - 19 * 7 * 86400000).toISOString().slice(0, 10);
+  const exact = createState(registry).set('ctx_birth_date', born);
+  assert.ok(Math.abs(exact.weeksPostpartum - 19) < 0.2);
+  assert.match(stageSentence(exact.weeksPostpartum, true), /Your baby is 4 months and 2 weeks old/);
+
+  const declined = createState(registry).set('ctx_birth_date', 'pna').set('ctx_stage', 'm6_9');
+  assert.equal(declined.weeksFromBirthDate, null);
+  assert.equal(declined.weeksPostpartum, 32);
+
+  const future = createState(registry).set('ctx_birth_date', '2099-01-01');
+  assert.equal(future.weeksFromBirthDate, null, 'a future date is a typo, not a stage');
+});
+
+test('a band held down by the cardinal rule still reports the symptom load behind it', () => {
+  const answers = { ctx_stage: 'm3_6', dep_duration: 'gt3m' };
+  fillDomain(answers, 'depression', '3');
+  answers.dep_mood = '0';
+  answers.dep_anhedonia = '0';
+  answers.dep_numb = '0';
+
+  const results = build(answers);
+  const depression = results.patterns.find((p) => p.domain === 'depression');
+  assert.equal(depression.band, 'low');
+  assert.match(depression.reviewNote, /worth putting in front of a professional/);
+  assert.match(depression.reviewNote, /persistent low mood, loss of interest, or emotional numbness/);
+});
+
+test('an urgent reality-testing flag is explained rather than left as a label', () => {
+  const results = build({ ctx_stage: 'm3_6', saf_reference: '1' });
+  assert.equal(results.emergency, false, 'one endorsement at "once or twice" is not an emergency');
+  const note = results.notes.find((n) => /losing touch with what is real/.test(n));
+  assert.ok(note);
+  assert.match(note, /days rather than months/);
+  assert.equal(results.severity.key, 'red');
+});
+
+test('circumstances are reported separately from symptom patterns', () => {
+  const answers = {
+    ctx_stage: 'm3_6',
+    sup_judged: '3', sup_dismissed: '3', sup_isolated: '3', sup_alone_within: '3',
+    dep_mood: '3', dep_anhedonia: '3', dep_numb: '2', dep_duration: 'm1_3',
+  };
+  const results = build(answers);
+  assert.ok(results.patterns.every((p) => p.domain !== 'support'));
+  assert.ok(results.contextPatterns.some((p) => p.domain === 'support'));
+  assert.match(toPlainText(results), /CONTEXT AROUND YOU/);
 });

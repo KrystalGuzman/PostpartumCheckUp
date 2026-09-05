@@ -15,17 +15,22 @@ import { domainModules } from '../data/domains.js';
 
 export const BANDS = ['minimal', 'low', 'moderate', 'high'];
 
+/**
+ * `group` decides where a module is reported. Symptom modules are the ones a
+ * clinician would treat; context modules describe circumstances and must never
+ * head a list titled "strongest patterns".
+ */
 export const DOMAIN_META = {
-  baby_blues: { label: 'Baby blues pattern', kind: 'clinical', severityWeight: 0 },
-  depression: { label: 'Depression symptoms', kind: 'clinical', severityWeight: 1 },
-  anxiety: { label: 'Anxiety symptoms', kind: 'clinical', severityWeight: 1 },
-  ocd: { label: 'Intrusive thoughts and compulsive patterns', kind: 'clinical', severityWeight: 1 },
-  trauma: { label: 'Trauma symptoms', kind: 'clinical', severityWeight: 1 },
-  bipolar: { label: 'Bipolar-spectrum warning signs', kind: 'clinical', severityWeight: 1 },
-  adjustment: { label: 'Adjustment and life-stress response', kind: 'clinical', severityWeight: 1 },
-  grief: { label: 'Grief and loss', kind: 'contextual', severityWeight: 0.5 },
-  medical: { label: 'Possible physical or medical contributors', kind: 'contextual', severityWeight: 0 },
-  support: { label: 'Relationship and support context', kind: 'contextual', severityWeight: 0 },
+  baby_blues: { label: 'Baby blues pattern', group: 'symptom', severityWeight: 0 },
+  depression: { label: 'Depression symptoms', group: 'symptom', severityWeight: 1 },
+  anxiety: { label: 'Anxiety symptoms', group: 'symptom', severityWeight: 1 },
+  ocd: { label: 'Intrusive thoughts and compulsive patterns', group: 'symptom', severityWeight: 1 },
+  trauma: { label: 'Trauma symptoms', group: 'symptom', severityWeight: 1 },
+  bipolar: { label: 'Bipolar-spectrum warning signs', group: 'symptom', severityWeight: 1 },
+  adjustment: { label: 'Adjustment and life-stress response', group: 'symptom', severityWeight: 1 },
+  grief: { label: 'Grief and loss', group: 'symptom', severityWeight: 0.5 },
+  medical: { label: 'Possible physical or medical contributors', group: 'context', severityWeight: 0 },
+  support: { label: 'Relationship and support context', group: 'context', severityWeight: 0 },
 };
 
 const bandFromRatio = (ratio) => {
@@ -71,10 +76,14 @@ export function scoreDomain(domainId, state) {
   const modifiers = [];
   let band = bandFromRatio(ratio);
 
-  const applyCap = (ceiling, reason) => {
-    if (BANDS.indexOf(band) > BANDS.indexOf(ceiling)) {
-      modifiers.push({ effect: `capped at ${ceiling}`, reason });
-      band = ceiling;
+  // A cap is a hard ceiling, held back and applied after every other
+  // adjustment. Without that, a later floor (say, "persistent for more than
+  // three months") could quietly overrule the cardinal-symptom rule.
+  let ceiling = BANDS[BANDS.length - 1];
+  const applyCap = (limit, reason) => {
+    if (BANDS.indexOf(limit) < BANDS.indexOf(ceiling)) {
+      ceiling = limit;
+      modifiers.push({ effect: `capped at ${limit}`, reason });
     }
   };
   const applyFloor = (floor, reason) => {
@@ -96,20 +105,39 @@ export function scoreDomain(domainId, state) {
     applyCap('low', 'not enough answered questions in this section to say more');
   }
 
-  // Cardinal-symptom rule: a module needs at least one of its defining
-  // symptoms endorsed before its pattern is reported as notable.
+  // Cardinal-symptom rule: a module needs its defining symptoms before its
+  // pattern is reported as notable — either one endorsed strongly, or two
+  // present at any level, since several mild cardinal symptoms still make the
+  // pattern.
   const cardinal = module?.cardinal ?? [];
-  const cardinalMet = cardinal.length === 0 || cardinal.some((id) => (state.scoreOf(id) ?? 0) >= 2);
+  const cardinalMet =
+    cardinal.length === 0 ||
+    cardinal.some((id) => (state.scoreOf(id) ?? 0) >= 2) ||
+    state.countAtLeast(cardinal, 1) >= 2;
   if (!cardinalMet && cardinal.length > 0) {
-    applyCap('low', 'the core symptoms this pattern is defined by were not strongly endorsed');
+    applyCap(
+      'low',
+      `the symptoms this pattern is defined by — ${module.cardinalLabel ?? 'its core symptoms'} — were not endorsed`,
+    );
   }
 
+  // Several symptoms at the very top of the scale outweigh an average that
+  // gets diluted by the items someone answered "not at all".
+  const atCeiling = answered.filter((item) => state.scoreOf(item.id) === 3).length;
+  if (atCeiling >= 5) applyFloor('high', `${atCeiling} symptoms here were endorsed at the top of the scale`);
+  else if (atCeiling >= 3) applyFloor('moderate', `${atCeiling} symptoms here were endorsed at the top of the scale`);
+
   applyDomainModifiers(domainId, state, { applyCap, applyFloor, applyStep });
+
+  band = atMost(band, ceiling);
+
+  // Real symptom load behind a capped band should not vanish from the report.
+  const cappedButLoaded = !cardinalMet && BANDS.indexOf(bandFromRatio(ratio)) >= BANDS.indexOf('moderate');
 
   return {
     domain: domainId,
     label: DOMAIN_META[domainId]?.label ?? domainId,
-    kind: DOMAIN_META[domainId]?.kind ?? 'clinical',
+    kind: DOMAIN_META[domainId]?.group === 'context' ? 'contextual' : 'clinical',
     raw,
     max,
     ratio,
@@ -117,6 +145,9 @@ export function scoreDomain(domainId, state) {
     bandFromScore: bandFromRatio(ratio),
     answeredCount: answered.length,
     cardinalMet,
+    cappedButLoaded,
+    cardinalLabel: module?.cardinalLabel ?? null,
+    group: DOMAIN_META[domainId]?.group ?? 'symptom',
     modifiers,
   };
 }
@@ -142,8 +173,8 @@ function applyDomainModifiers(domainId, state, { applyCap, applyFloor, applyStep
 
   if (domainId === 'ocd') {
     const time = value('ocd_time');
-    if (time === 'h1_3') applyFloor('moderate', 'more than an hour a day is going to these thoughts and behaviours');
-    if (time === 'gt3h') applyFloor('high', 'more than three hours a day is going to these thoughts and behaviours');
+    if (time === 'h1_3') applyFloor('moderate', 'more than an hour a day is going to these thoughts and behaviors');
+    if (time === 'gt3h') applyFloor('high', 'more than three hours a day is going to these thoughts and behaviors');
     if (score('ocd_avoid') >= 2) applyFloor('moderate', 'avoiding care situations because of the thoughts');
   }
 
@@ -190,16 +221,24 @@ export function evaluateBipolar(state) {
     history.includes(h),
   );
 
+  const presentCount = state.countAtLeast(maniaItems, 1);
   const clustered = samePeriod === 'yes' || samePeriod === 'unsure';
+  const sustained = ['d4_6', 'w1plus'].includes(duration);
+
+  // Reduced need for sleep is the gate: exhaustion cannot reach this, whatever
+  // else is endorsed. Beyond that gate, several mild features clustered in one
+  // period count for as much as a couple of severe ones.
   const warning =
-    (decreasedNeedForSleep >= 2 && (score('bip_elevated') >= 2 || score('bip_irritable') >= 2) && symptomCount >= 3) ||
-    (decreasedNeedForSleep >= 2 && clustered && symptomCount >= 3) ||
-    (symptomCount >= 4 && clustered && impact === 'problems');
+    (decreasedNeedForSleep >= 2 && clustered && (symptomCount >= 2 || presentCount >= 4)) ||
+    (decreasedNeedForSleep >= 2 && (score('bip_elevated') >= 2 || score('bip_irritable') >= 2) && symptomCount >= 2) ||
+    (symptomCount >= 4 && clustered && (impact === 'problems' || sustained));
 
   return {
     warning,
     decreasedNeedForSleep,
     symptomCount,
+    presentCount,
+    sustained,
     clustered,
     duration,
     impact,
@@ -377,15 +416,20 @@ export function scoreAll(state) {
     drivers.unshift('safety-related responses that need to be followed up');
   }
 
-  const ranked = domains
-    .filter((d) => BANDS.indexOf(d.band) >= BANDS.indexOf('low'))
-    .sort((a, b) => BANDS.indexOf(b.band) - BANDS.indexOf(a.band) || b.ratio - a.ratio);
+  const byStrength = (a, b) => BANDS.indexOf(b.band) - BANDS.indexOf(a.band) || b.ratio - a.ratio;
+  const reportable = domains.filter(
+    (d) => BANDS.indexOf(d.band) >= BANDS.indexOf('low') || d.cappedButLoaded,
+  );
+  const rankedSymptoms = reportable.filter((d) => d.group === 'symptom').sort(byStrength);
+  const rankedContext = reportable.filter((d) => d.group === 'context').sort(byStrength);
 
   return {
     safety,
     domains,
     byDomain,
-    ranked,
+    ranked: [...rankedSymptoms, ...rankedContext],
+    rankedSymptoms,
+    rankedContext,
     functioning,
     bipolar,
     babyBlues,
@@ -393,6 +437,7 @@ export function scoreAll(state) {
     severityKey: severity,
     drivers,
     weeksPostpartum: state.weeksPostpartum,
+    exactAge: state.weeksFromBirthDate != null,
     stopScoring: safety.stopScoring,
   };
 }

@@ -113,3 +113,32 @@ test('the handout asserts no diagnosis', () => {
     assert.equal(banned.test(text), false, `"${banned}" appeared in the handout`);
   }
 });
+
+test('the handout separates symptom modules from circumstances', () => {
+  const summary = provider({
+    ctx_stage: 'm3_6',
+    ...CLEAN_SAFETY,
+    sup_judged: '3', sup_dismissed: '3', sup_isolated: '3', sup_alone_within: '3',
+    dep_mood: '3', dep_anhedonia: '3', dep_numb: '2', dep_duration: 'm1_3',
+  });
+  assert.ok(summary.patterns.every((p) => p.domain !== 'support'));
+  assert.ok(summary.contextPatterns.some((p) => p.domain === 'support'));
+
+  const text = toProviderText(summary);
+  assert.match(text, /SYMPTOM PATTERNS/);
+  assert.match(text, /CONTEXT AND CIRCUMSTANCES/);
+  assert.ok(text.indexOf('SYMPTOM PATTERNS') < text.indexOf('CONTEXT AND CIRCUMSTANCES'));
+});
+
+test('a capped band is explained once, not twice', () => {
+  const answers = { ctx_stage: 'm3_6', ...CLEAN_SAFETY, dep_duration: 'gt3m' };
+  fillDomain(answers, 'depression', '3');
+  answers.dep_mood = '0';
+  answers.dep_anhedonia = '0';
+  answers.dep_numb = '0';
+
+  const text = toProviderText(provider(answers));
+  assert.equal((text.match(/Cardinal symptoms not endorsed/g) ?? []).length, 0);
+  assert.equal((text.match(/capped at low/g) ?? []).length, 1);
+  assert.match(text, /symptom load here is substantial despite the capped band/);
+});

@@ -74,10 +74,7 @@ export function buildProviderSummary(scored, state, { completedAt = new Date(), 
     });
   }
 
-  const patterns = domains
-    .filter((d) => BANDS.indexOf(d.band) >= BANDS.indexOf('low') || d.answeredCount > 0)
-    .sort((a, b) => BANDS.indexOf(b.band) - BANDS.indexOf(a.band) || b.ratio - a.ratio)
-    .map((domain) => ({
+  const describePattern = (domain) => ({
       domain: domain.domain,
       label: domain.label,
       kind: DOMAIN_META[domain.domain]?.kind ?? 'clinical',
@@ -87,6 +84,8 @@ export function buildProviderSummary(scored, state, { completedAt = new Date(), 
       percent: domain.max > 0 ? Math.round(domain.ratio * 100) : null,
       answeredCount: domain.answeredCount,
       cardinalMet: domain.cardinalMet,
+      cardinalLabel: domain.cardinalLabel,
+      cappedButLoaded: domain.cappedButLoaded,
       modifiers: domain.modifiers,
       endorsed: registry
         .scoredItemsForDomain(domain.domain)
@@ -96,7 +95,13 @@ export function buildProviderSummary(scored, state, { completedAt = new Date(), 
       contextual: durationAndTrajectoryIds(domain.domain)
         .map((id) => describeAnswer(state, id))
         .filter(Boolean),
-    }));
+  });
+
+  const reported = domains
+    .filter((d) => BANDS.indexOf(d.band) >= BANDS.indexOf('low') || d.answeredCount > 0)
+    .sort((a, b) => BANDS.indexOf(b.band) - BANDS.indexOf(a.band) || b.ratio - a.ratio);
+  const patterns = reported.filter((d) => d.group === 'symptom').map(describePattern);
+  const contextPatterns = reported.filter((d) => d.group === 'context').map(describePattern);
 
   const scenarioResponses = selectScenarios(state)
     .map((scenarioItem) => describeAnswer(state, scenarioItem.id))
@@ -112,7 +117,7 @@ export function buildProviderSummary(scored, state, { completedAt = new Date(), 
       name: name.trim(),
       completedAt,
       completedAtLabel: formatDate(completedAt),
-      stage: stageSentence(scored.weeksPostpartum),
+      stage: stageSentence(scored.weeksPostpartum, scored.exactAge),
       weeksPostpartum: scored.weeksPostpartum,
       severity,
       drivers,
@@ -126,6 +131,7 @@ export function buildProviderSummary(scored, state, { completedAt = new Date(), 
       intrusiveHarmThoughts: safety.intrusiveHarmThoughts,
     },
     patterns,
+    contextPatterns,
     bipolar: {
       warning: bipolar.warning,
       decreasedNeedForSleep: bipolar.decreasedNeedForSleep,

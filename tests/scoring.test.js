@@ -22,7 +22,7 @@ test('a module without its cardinal symptoms is capped, however many other items
   const scored = scoreDomain('depression', stateWith(answers));
   assert.equal(scored.cardinalMet, false);
   assert.equal(scored.band, 'low');
-  assert.ok(scored.modifiers.some((m) => m.reason.includes('core symptoms')));
+  assert.ok(scored.modifiers.some((m) => m.reason.includes('this pattern is defined by')));
 });
 
 test('depression under two weeks old is capped, and duration over three months raises the floor', () => {
@@ -199,4 +199,88 @@ test('support strain is described but never drives the severity band', () => {
   const scored = scoreAll(stateWith(answers));
   assert.equal(scored.byDomain.support.band, 'high');
   assert.equal(scored.severityKey, 'green');
+});
+
+test('a cap is a ceiling: a later floor cannot overrule the cardinal-symptom rule', () => {
+  const answers = { dep_duration: 'gt3m', dep_distress: '3' };
+  fillDomain(answers, 'depression', '3');
+  answers.dep_mood = '0';
+  answers.dep_anhedonia = '0';
+  answers.dep_numb = '0';
+
+  const scored = scoreDomain('depression', stateWith(answers));
+  assert.equal(scored.cardinalMet, false);
+  assert.equal(scored.band, 'low', 'duration and distress floors must not lift a cardinal-capped band');
+  assert.equal(scored.cappedButLoaded, true, 'the symptom load behind the cap is still reported');
+});
+
+test('two cardinal symptoms present at a low level satisfy the cardinal rule', () => {
+  const base = { ptsd_event: ['frightening'], ptsd_hypervigilance: '2', ptsd_detachment: '2' };
+  const single = scoreDomain('trauma', stateWith({ ...base, ptsd_intrusion: '1' }));
+  const pair = scoreDomain('trauma', stateWith({ ...base, ptsd_intrusion: '1', ptsd_avoid: '1' }));
+  assert.equal(single.cardinalMet, false);
+  assert.equal(pair.cardinalMet, true);
+});
+
+test('several symptoms at the top of the scale outweigh a diluted average', () => {
+  const answers = {
+    anx_worry: '3', anx_uncontrollable: '3', anx_catastrophic: '3', anx_onedge: '3', anx_relax: '3',
+    anx_dread: '2', anx_irritable: '1', anx_sleep: '1',
+    anx_racing: '0', anx_physical: '0', anx_avoid: '0', anx_panic: '0',
+  };
+  const scored = scoreDomain('anxiety', stateWith(answers));
+  assert.ok(scored.ratio < 0.55, 'the raw average alone would read as moderate');
+  assert.equal(scored.band, 'high');
+  assert.ok(scored.modifiers.some((m) => m.reason.includes('top of the scale')));
+});
+
+test('a clustered episode of reduced need for sleep is caught even when the other features are mild', () => {
+  const bipolar = evaluateBipolar(
+    stateWith({
+      bip_sleep_no_need: '2',
+      bip_confidence: '3',
+      bip_elevated: '1',
+      bip_irritable: '1',
+      bip_energy: '1',
+      bip_activity: '1',
+      bip_impulsive: '1',
+      bip_same_period: 'yes',
+      bip_duration: 'd4_6',
+      bip_impact: 'noticed',
+    }),
+  );
+  assert.equal(bipolar.warning, true);
+});
+
+test('the symptoms exhaustion actually produces do not reach the bipolar warning', () => {
+  // Irritability and racing thoughts are what being shattered looks like. What
+  // separates the two pictures is energy: more of it, not less, and not needing
+  // sleep to get it.
+  const exhausted = {
+    ctx_sleep: 'very_short',
+    bip_sleep_no_need: '0',
+    bip_irritable: '3', bip_racing: '3',
+    bip_energy: '0', bip_activity: '0', bip_impulsive: '0', bip_confidence: '0', bip_elevated: '0',
+    bip_same_period: 'yes', bip_duration: 'w1plus', bip_impact: 'problems',
+  };
+  assert.equal(evaluateBipolar(stateWith(exhausted)).warning, false);
+
+  // The same answers, plus running on no sleep and feeling fine on it, do.
+  assert.equal(
+    evaluateBipolar(stateWith({ ...exhausted, bip_sleep_no_need: '2', bip_energy: '2' })).warning,
+    true,
+  );
+});
+
+test('circumstances are never ranked among the symptom patterns', () => {
+  const answers = {
+    ctx_stage: 'm3_6',
+    sup_judged: '3', sup_dismissed: '3', sup_isolated: '3', sup_alone_within: '3',
+    dep_mood: '2', dep_anhedonia: '2', dep_numb: '1', dep_duration: 'm1_3',
+  };
+  const scored = scoreAll(stateWith(answers));
+  assert.equal(scored.byDomain.support.band, 'high');
+  assert.ok(scored.rankedSymptoms.every((d) => d.group === 'symptom'));
+  assert.ok(scored.rankedContext.some((d) => d.domain === 'support'));
+  assert.equal(scored.rankedSymptoms[0].domain, 'depression');
 });
