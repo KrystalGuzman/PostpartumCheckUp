@@ -21,6 +21,10 @@ export function toPlainText(results, { includeResources = true } = {}) {
     rule();
   }
 
+  if (results.condensedNote) {
+    lines.push(wrap(results.condensedNote));
+    rule();
+  }
   lines.push(`Stage: ${results.stage}`);
   lines.push(`Overall: ${results.severity.icon} ${results.severity.label}`);
   lines.push(`Functional impact: ${results.functionalImpact.label}`);
@@ -71,7 +75,7 @@ export function toPlainText(results, { includeResources = true } = {}) {
     if (!list.length) return;
     lines.push(title);
     list.forEach((p) => {
-      lines.push(bullet(`${p.label} (${p.band})`));
+      lines.push(bullet(`${p.label} (${p.band}${p.provisional ? ', screened only' : ''})`));
       lines.push(`  ${wrap(p.statement, '  ', 76)}`);
       if (p.reviewNote) lines.push(`  ${wrap(p.reviewNote, '  ', 76)}`);
     });
@@ -100,6 +104,13 @@ export function toPlainText(results, { includeResources = true } = {}) {
   lines.push('SUGGESTED NEXT STEPS');
   results.nextSteps.forEach((s) => lines.push(bullet(s.text)));
   rule();
+
+  if (results.expansions?.length) {
+    lines.push('WORTH GOING DEEPER ON');
+    lines.push(wrap('Based on your screening answers, in this order:'));
+    results.expansions.forEach((e) => lines.push(bullet(`${e.title} (${e.remaining} more questions) — ${e.reason}`)));
+    rule();
+  }
 
   lines.push('QUESTIONS TO BRING TO A HEALTHCARE PROVIDER');
   results.providerQuestions.forEach((q) => lines.push(bullet(q)));
@@ -219,7 +230,9 @@ export function toProviderText(provider) {
     heading(title);
     list.forEach((p) => {
       const scoreLine = p.percent == null ? 'no scored items answered' : `${p.raw}/${p.max} = ${p.percent}%`;
-      lines.push(`${p.label}: ${p.band.toUpperCase()} (${scoreLine}, ${p.answeredCount} items answered)`);
+      lines.push(
+        `${p.label}: ${p.band.toUpperCase()}${p.screenedOnly ? ' [SCREENED ONLY]' : ''} (${scoreLine}, ${p.answeredCount} items answered)`,
+      );
       p.modifiers.forEach((m) => lines.push(`    ${m.effect}: ${wrap(m.reason, '    ', 68)}`));
       if (p.cappedButLoaded) {
         lines.push(`    ${wrap('Note: symptom load here is substantial despite the capped band.', '    ', 68)}`);

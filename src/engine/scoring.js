@@ -8,12 +8,13 @@
  * impact and the safety evaluation — never reduced to a single number.
  */
 
-import { registry } from './questionnaire.js';
+import { registry, sectionIsFull, visibleItems } from './questionnaire.js';
 import { selectScenarios } from '../data/scenarios.js';
 import { evaluateSafety, levelRank } from './safety.js';
 import { evaluateRiskFactors } from './riskFactors.js';
 import { evaluateAdaptation } from './adaptation.js';
 import { allModules } from '../data/modules.js';
+import { SHORT_FORM_ITEMS } from '../data/shortForm.js';
 
 export const BANDS = ['minimal', 'low', 'moderate', 'high'];
 
@@ -114,8 +115,14 @@ export function scoreDomain(domainId, state) {
     }
   };
 
-  // Too little answered to say anything.
-  if (answered.length + scenario.max / 3 < 4) {
+  // A module asked only through its screening questions is capped at moderate
+  // and reported as provisional: three items can say "worth a closer look" and
+  // must not be allowed to say more than that.
+  const screenedOnly = Boolean(module) && !sectionIsFull(module, state);
+  if (screenedOnly) {
+    applyCap('moderate', 'only the screening questions for this section were answered');
+  } else if (answered.length + scenario.max / 3 < 4) {
+    // Too little answered to say anything.
     applyCap('low', 'not enough answered questions in this section to say more');
   }
 
@@ -159,6 +166,7 @@ export function scoreDomain(domainId, state) {
     bandFromScore: bandFromRatio(ratio),
     answeredCount: answered.length,
     cardinalMet,
+    screenedOnly,
     cappedButLoaded,
     cardinalLabel: module?.cardinalLabel ?? null,
     group: DOMAIN_META[domainId]?.group ?? 'symptom',
@@ -358,6 +366,61 @@ const SEVERITY_ORDER = ['green', 'yellow', 'orange', 'red'];
 const raiseSeverity = (current, floor) =>
   SEVERITY_ORDER.indexOf(floor) > SEVERITY_ORDER.indexOf(current) ? floor : current;
 
+/**
+ * Which of the screened-only modules are worth opening up, and in what order.
+ *
+ * Ranked by what the screening questions actually said, not by a fixed list, so
+ * the longest modules are offered only to the people whose answers point at
+ * them. A module with a hard signal in it — endorsed intrusive thoughts, a
+ * traumatic birth, reduced need for sleep, a loss — is offered whatever its
+ * ratio, because those are the ones a short screen most easily under-reads.
+ */
+export function expansionPriorities(state, scored) {
+  const score = (id) => state.scoreOf(id) ?? 0;
+  const forced = {
+    ocd: score('ocd_intrusive') >= 2 && 'you reported unwanted intrusive thoughts',
+    trauma: state.gatePassed('ptsd_event') && 'you described a difficult birth or postpartum experience',
+    bipolar: score('bip_sleep_no_need') >= 2 && 'you reported running on very little sleep without feeling tired',
+    grief: state.gatePassed('grief_event') && 'you are carrying a loss',
+    medical: score('med_symptoms') > 0 && 'you mentioned physical symptoms that can affect mood',
+  };
+
+  return allModules
+    .filter((module) => module.domain && !sectionIsFull(module, state))
+    .map((module) => {
+      const domain = scored.byDomain[module.domain];
+      if (!domain || domain.answeredCount === 0) return null;
+
+      const asked = new Set(visibleItems(module, state).map((item) => item.id));
+      const remaining = module.items.filter(
+        (item) => !asked.has(item.id) && !SHORT_FORM_ITEMS.has(item.id) && (!item.showIf || item.showIf(state)),
+      ).length;
+      if (remaining === 0) return null;
+
+      const reason = forced[module.domain] || null;
+      const signal = domain.ratio;
+      if (!reason && signal < 0.2) return null;
+
+      return {
+        sectionId: module.id,
+        domain: module.domain,
+        label: DOMAIN_META[module.domain]?.label ?? module.domain,
+        title: module.title,
+        band: domain.band,
+        ratio: signal,
+        remaining,
+        reason:
+          reason ??
+          (signal >= 0.5
+            ? 'your screening answers here were among the strongest'
+            : 'your screening answers here suggested there may be more to it'),
+        priority: (reason ? 0.35 : 0) + signal,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.priority - a.priority);
+}
+
 export function scoreAll(state) {
   const safety = evaluateSafety(state);
   const risk = evaluateRiskFactors(state);
@@ -456,7 +519,7 @@ export function scoreAll(state) {
   const rankedSymptoms = reportable.filter((d) => d.group === 'symptom').sort(byStrength);
   const rankedContext = reportable.filter((d) => d.group === 'context').sort(byStrength);
 
-  return {
+  const result = {
     safety,
     risk,
     adaptation,
@@ -474,5 +537,10 @@ export function scoreAll(state) {
     weeksPostpartum: state.weeksPostpartum,
     exactAge: state.weeksFromBirthDate != null,
     stopScoring: safety.stopScoring,
+    mode: state.mode,
+    screenedOnly: domains.filter((d) => d.screenedOnly).map((d) => d.domain),
   };
+
+  result.expansions = safety.stopScoring ? [] : expansionPriorities(state, result);
+  return result;
 }

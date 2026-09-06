@@ -28,6 +28,12 @@ const ui = {
   safetyAcknowledged: 'none',
   alertLevel: 'none',
   pendingSectionId: null,
+  /** 'short' asks the condensed set; 'full' asks everything. */
+  mode: 'short',
+  /** Sections opened up beyond the condensed set, from the summary. */
+  expanded: [],
+  /** Set while answering a module opened from the summary, to return there. */
+  expandingSection: null,
   /** Which summary is on screen: the one written for the parent, or the handout. */
   view: 'me',
   /** Optional, for the top of a printed handout. Never leaves the device. */
@@ -35,7 +41,8 @@ const ui = {
   completedAt: null,
 };
 
-const state = createState(registry, loadSaved());
+const saved = loadSaved();
+const state = createState(registry, saved, { mode: ui.mode, expanded: ui.expanded });
 
 // ---------------------------------------------------------------------------
 // Persistence (opt-in, local only)
@@ -49,6 +56,8 @@ function loadSaved() {
     ui.save = true;
     ui.region = parsed.region ?? 'us';
     ui.name = parsed.name ?? '';
+    ui.mode = parsed.mode ?? 'short';
+    ui.expanded = parsed.expanded ?? [];
     return parsed.responses ?? {};
   } catch {
     return {};
@@ -58,7 +67,13 @@ function loadSaved() {
 function persist() {
   try {
     if (!ui.save) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ responses: state.responses, region: ui.region, name: ui.name }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        responses: state.responses,
+        region: ui.region,
+        name: ui.name,
+        mode: state.mode,
+        expanded: state.expanded,
+      }));
   } catch {
     /* private browsing, blocked storage — the check-up still works in-memory */
   }
@@ -105,12 +120,30 @@ function introScreen() {
     <div class="notice">
       <h2 style="margin-top:0">Before you start</h2>
       <ul class="plain">
-        <li>This takes about 10–15 minutes. You can skip any question.</li>
+        <li>You can skip any question, and you can stop and come back.</li>
         <li>Nothing you enter leaves this device. There is no account and no server.</li>
         <li>It is a screening tool, not a diagnosis, and not a substitute for a clinician.</li>
         <li>If you are in danger right now, stop and contact your local emergency number.</li>
       </ul>
     </div>
+    <div class="card">
+      <p class="q" id="q_length">How long do you have?</p>
+      <div class="options" role="radiogroup" aria-labelledby="q_length">
+        <label class="option" data-checked="${ui.mode === 'short'}">
+          <input type="radio" name="__mode" id="__mode__short" value="short" ${ui.mode === 'short' ? 'checked' : ''} />
+          <span class="label">The short version — about 5 minutes<br />
+            <span class="small muted">Safety, your history and how you are adapting are asked in full. Everything else is screened, and at the end you are offered the longer sections your answers say matter most — in that order, one at a time.</span>
+          </span>
+        </label>
+        <label class="option" data-checked="${ui.mode === 'full'}">
+          <input type="radio" name="__mode" id="__mode__full" value="full" ${ui.mode === 'full' ? 'checked' : ''} />
+          <span class="label">The full version — about 20 minutes<br />
+            <span class="small muted">Every section, worked through in one go.</span>
+          </span>
+        </label>
+      </div>
+    </div>
+
     <div class="card">
       <p class="q" id="q_region">Where are you? This only decides which support numbers you are shown.</p>
       <div class="options" role="radiogroup" aria-labelledby="q_region">
@@ -147,11 +180,12 @@ function sectionScreen() {
   const items = visibleItems(section, state);
   const p = progress(state);
 
+  const expanding = ui.expandingSection === section.id;
   return `
     <div class="progress no-print">
       <div class="progress-bar"><i style="width:${Math.round(p.ratio * 100)}%"></i></div>
       <div class="progress-label">
-        <span>Section ${index + 1} of ${list.length} · ${esc(section.title)}</span>
+        <span>${expanding ? 'Going deeper' : `Section ${index + 1} of ${list.length}`} · ${esc(section.title)}</span>
         <span>${p.answered} of ${p.total} answered</span>
       </div>
     </div>
@@ -159,8 +193,20 @@ function sectionScreen() {
     ${section.blurb ? `<p class="lede">${esc(section.blurb)}</p>` : ''}
     ${items.map(itemCard).join('')}
     <div class="actions no-print">
-      ${index > 0 ? '<button data-action="back">Back</button>' : '<button data-action="intro">Back</button>'}
-      <button class="primary" data-action="next">${index === list.length - 1 ? 'See my summary' : 'Continue'}</button>
+      ${
+        ui.expandingSection === section.id
+          ? '<button data-action="results">Back to my summary</button>'
+          : index > 0
+            ? '<button data-action="back">Back</button>'
+            : '<button data-action="intro">Back</button>'
+      }
+      <button class="primary" data-action="next">${
+        ui.expandingSection === section.id
+          ? 'Add this to my summary'
+          : index === list.length - 1
+            ? 'See my summary'
+            : 'Continue'
+      }</button>
     </div>
     <p class="small muted">You can leave anything blank. Skipped questions are left out of the result rather than counted as a zero.</p>
   `;
@@ -335,6 +381,37 @@ function parentSummary(results) {
       .map((w) => `<li>${esc(w.label)}</li>`)
       .join('')}</ul>` : ''}
 
+    ${results.condensedNote ? `<div class="notice"><p style="margin:0">${esc(results.condensedNote)}</p></div>` : ''}
+
+    ${
+      results.expansions?.length
+        ? `<h2 class="no-print">Worth going deeper on</h2>
+           <p class="small muted no-print">Based on what you have already answered, most useful first. Each one adds to the summary you are looking at — you can do one and stop, or none at all.</p>
+           <div class="no-print">
+             ${results.expansions
+               .slice(0, 4)
+               .map(
+                 (e) => `<div class="expand-row">
+                   <div>
+                     <strong>${esc(e.title)}</strong>
+                     <p class="small muted" style="margin:.2rem 0 0">${esc(e.reason.charAt(0).toUpperCase() + e.reason.slice(1))}.</p>
+                   </div>
+                   <button data-action="expand" data-section="${esc(e.sectionId)}">${e.remaining} more question${e.remaining === 1 ? '' : 's'}</button>
+                 </div>`,
+               )
+               .join('')}
+             ${
+               results.expansions.length > 4
+                 ? `<p class="small muted" style="margin:.8rem 0 .4rem">${results.expansions.length - 4} other section${
+                     results.expansions.length - 4 === 1 ? '' : 's'
+                   } could add something too, less urgently.</p>
+                    <button data-action="answer-everything">Answer everything that is left</button>`
+                 : ''
+             }
+           </div>`
+        : ''
+    }
+
     ${
       results.load
         ? `<h2>The load, and how you are carrying it</h2>
@@ -423,8 +500,9 @@ function parentSummary(results) {
 
 function patternCard(p) {
   return `<div class="pattern">
-    <div class="head"><span class="name">${esc(p.label)}</span><span class="band" data-band="${esc(p.band)}">${esc(p.band)}</span></div>
+    <div class="head"><span class="name">${esc(p.label)}</span><span class="band" data-band="${esc(p.band)}">${esc(p.band)}${p.provisional ? ' · screened' : ''}</span></div>
     <p style="margin:0">${esc(p.statement)}</p>
+    ${p.provisional ? '<p class="small muted" style="margin:.4rem 0 0">Screened only — this says there may be something here, not how much.</p>' : ''}
     ${p.reviewNote ? `<p style="margin:.6rem 0 0">${esc(p.reviewNote)}</p>` : ''}
     ${
       p.modifiers.length
@@ -679,6 +757,13 @@ app.addEventListener('change', (event) => {
     render({ preserveFocus: true });
     return;
   }
+  if (input.name === '__mode') {
+    ui.mode = input.value;
+    state.setMode(input.value);
+    persist();
+    render({ preserveFocus: true });
+    return;
+  }
   if (input.name === '__region') {
     ui.region = input.value;
     persist();
@@ -724,10 +809,48 @@ app.addEventListener('click', (event) => {
     const index = list.findIndex((s) => s.id === ui.sectionId);
     if (index <= 0) ui.screen = 'intro';
     else ui.sectionId = list[index - 1].id;
+  } else if (action === 'answer-everything') {
+    // Switch to the full set and drop into the first section with gaps in it.
+    ui.mode = 'full';
+    state.setMode('full');
+    ui.expandingSection = null;
+    persist();
+    const firstUnanswered = applicableSections(state).find((section) =>
+      visibleItems(section, state).some((item) => !state.answered(item.id)),
+    );
+    if (firstUnanswered) {
+      ui.sectionId = firstUnanswered.id;
+      ui.screen = 'section';
+    } else {
+      ui.screen = 'results';
+    }
+  } else if (action === 'expand') {
+    // Opening one module from the summary: answer it, then come straight back.
+    const sectionId = button.dataset.section;
+    state.expand(sectionId);
+    ui.expanded = state.expanded;
+    ui.expandingSection = sectionId;
+    ui.sectionId = sectionId;
+    ui.screen = 'section';
+    persist();
   } else if (action === 'next') {
     const list = applicableSections(state);
     const index = list.findIndex((s) => s.id === ui.sectionId);
     const target = index + 1 >= list.length ? null : list[index + 1].id;
+
+    if (ui.expandingSection === ui.sectionId) {
+      ui.expandingSection = null;
+      const level = evaluateSafety(state).level;
+      if (levelRank(level) >= levelRank('urgent') && levelRank(level) > levelRank(ui.safetyAcknowledged)) {
+        ui.alertLevel = level;
+        ui.pendingSectionId = null;
+        ui.screen = 'safetyAlert';
+      } else {
+        ui.screen = 'results';
+      }
+      render();
+      return;
+    }
 
     // Safety-relevant answers are not confined to the safety section — the
     // insight question sits in the OCD module and the household-safety question
@@ -776,6 +899,10 @@ app.addEventListener('click', (event) => {
     for (const id of Object.keys(state.responses)) state.clear(id);
     forget();
     ui.save = false;
+    ui.mode = 'short';
+    ui.expanded = [];
+    ui.expandingSection = null;
+    state.setMode('short');
     ui.safetyAcknowledged = 'none';
     ui.alertLevel = 'none';
     ui.pendingSectionId = null;

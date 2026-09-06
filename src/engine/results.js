@@ -187,6 +187,7 @@ export function buildResults(scored, state, regionId = 'us') {
     // A band held down by the cardinal-symptom rule can still sit on top of a
     // real symptom load. Saying so is the difference between a rule that
     // protects against over-reading and one that buries what someone reported.
+    provisional: d.screenedOnly,
     reviewNote: d.cappedButLoaded
       ? `You endorsed a good number of symptoms here, but ${d.cardinalLabel ?? 'the symptoms this pattern is defined by'} did not come through in your answers, so this check-up holds the pattern at a low reading. That is a limit of the questionnaire, not a verdict on what you described — it is worth putting in front of a professional rather than setting aside.`
       : null,
@@ -227,6 +228,13 @@ export function buildResults(scored, state, regionId = 'us') {
     stage: stageSentence(scored.weeksPostpartum, scored.exactAge),
     severity,
     severityDrivers: drivers,
+    mode: scored.mode,
+    expansions: scored.expansions ?? [],
+    screenedOnly: scored.screenedOnly ?? [],
+    condensedNote:
+      scored.mode === 'short' && !emergency
+        ? 'This was the condensed check-up. The safety questions, your history, and how you are adapting were asked in full — nothing was trimmed there. The symptom sections were screened rather than worked through, so where a pattern shows below it is a signal to look further, not a measure of how much. Anything worth opening up is listed underneath, in the order your answers put it.'
+        : null,
     riskFactors: risk.factors,
     // Halted scoring means no load analysis either: it would only compete with
     // the instruction to get seen.

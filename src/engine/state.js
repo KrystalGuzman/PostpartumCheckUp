@@ -11,12 +11,35 @@
 
 const PNA = 'pna';
 
-export function createState(registry, initial = {}) {
+export function createState(registry, initial = {}, options = {}) {
   const responses = { ...initial };
+  let mode = options.mode ?? 'full';
+  const expanded = new Set(options.expanded ?? []);
 
   const state = {
     get responses() {
       return { ...responses };
+    },
+
+    /** 'full' asks everything; 'short' asks the condensed set. */
+    get mode() {
+      return mode;
+    },
+    setMode(next) {
+      mode = next === 'short' ? 'short' : 'full';
+      return state;
+    },
+
+    /** Sections the person has chosen to open up beyond the condensed set. */
+    get expanded() {
+      return [...expanded];
+    },
+    isExpanded(sectionId) {
+      return mode === 'full' || expanded.has(sectionId);
+    },
+    expand(sectionId) {
+      expanded.add(sectionId);
+      return state;
     },
 
     answered(id) {

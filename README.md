@@ -39,7 +39,21 @@ The check-up runs in this order, and the order is the point:
 
 Either version can be printed (a print stylesheet handles page breaks, drops the interface, and marks flagged rows without relying on colour), saved as a self-contained `.html` file with the stylesheet inlined, saved as wrapped plain text, or copied to the clipboard. Saving is a local file write — nothing is uploaded, and the name field never leaves the device.
 
-A full run is around 90 questions; conditional gates (trauma, grief, baby blues, scenario stage) cut that down considerably for most people. Every question can be skipped.
+### Two lengths
+
+The check-up opens with a choice, and **the condensed version is the default**.
+
+**Short (~5 minutes, roughly half the questions).** Safety, history and adaptation are asked in full — none of those is ever trimmed. Every other module is reduced to the items it is *defined* by: its cardinal symptoms plus one measure of intensity, along with any gate or safety-relevant item, so branching still works and nothing that could raise a flag is skipped. Scenarios are dropped. A module asked this way is capped at moderate, marked `screened only`, and reported as provisional wherever it appears: enough to say *look here*, never enough to say *how much*.
+
+**Full (~20 minutes).** Every section, in one pass.
+
+### Going deeper afterwards
+
+The short summary ends with **Worth going deeper on** — the longer modules ranked by what the answers actually said, most useful first, each showing how many more questions it adds. Opening one drops into that module alone and returns straight to the updated summary; its cap lifts and it leaves the list. Four are offered at a time, with an *Answer everything that is left* option behind them.
+
+Ranking is by signal strength, except that four things are always offered however low they score, because a three-item screen under-reads them: endorsed intrusive thoughts, a difficult birth, reduced need for sleep, and a loss being carried.
+
+In practice a full run is about 125 questions for a first baby and 150 with older children; the condensed version is 62 and 73. Conditional gates cut both down further. Every question can be skipped.
 
 ## Design rules the code enforces
 

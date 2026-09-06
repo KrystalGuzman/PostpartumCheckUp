@@ -9,6 +9,7 @@ import { allModules } from '../data/modules.js';
 import { historySection } from '../data/history.js';
 import { functioningSection } from '../data/functioning.js';
 import { scenarios, selectScenarios } from '../data/scenarios.js';
+import { ALWAYS_FULL_SECTIONS, SHORT_FORM_ITEMS } from '../data/shortForm.js';
 
 export const scenarioSection = {
   id: 'scenarios',
@@ -51,10 +52,21 @@ export const registry = {
   scenarioItems: () => scenarios,
 };
 
+/**
+ * Whether a section is asked in full: always in the full check-up, always for
+ * safety, history and adaptation, and for anything the person has since chosen
+ * to open up.
+ */
+export function sectionIsFull(section, state) {
+  return state.mode !== 'short' || ALWAYS_FULL_SECTIONS.has(section.id) || state.isExpanded(section.id);
+}
+
 /** Items in a section that are currently applicable, in order. */
 export function visibleItems(section, state) {
+  if (section.dynamic && !sectionIsFull(section, state)) return [];
   const items = section.dynamic ? selectScenarios(state) : section.items;
-  return items.filter((item) => (typeof item.showIf === 'function' ? item.showIf(state) : true));
+  const inScope = sectionIsFull(section, state) ? items : items.filter((item) => SHORT_FORM_ITEMS.has(item.id));
+  return inScope.filter((item) => (typeof item.showIf === 'function' ? item.showIf(state) : true));
 }
 
 export function sectionApplies(section, state) {

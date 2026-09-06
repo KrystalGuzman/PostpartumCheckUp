@@ -22,6 +22,7 @@ export const LIMITATIONS = [
   'The scores below are specific to this tool. They are not EPDS, PHQ-9, GAD-7, MDQ or PCL-5 scores and should not be recorded as such. No validated instrument was reproduced; published instruments informed which constructs are covered, nothing more.',
   'Each band is a proportion of the items the patient actually answered. Declined and inapplicable items are excluded from both numerator and denominator, so a low band on a sparsely answered module means little.',
   'Safety responses are reported in full, including negatives, so that an unanswered question is distinguishable from a denial.',
+  'Modules marked SCREENED ONLY were asked through their cardinal items alone, in the condensed version of the check-up, and are capped at moderate. They indicate where to look, not how much is there. Safety, history and adaptation are asked in full in both versions.',
   'Risk factors are reported separately from symptoms. They are history and circumstance, not evidence of anything happening now, and they were never scored into a band.',
 ];
 
@@ -85,6 +86,7 @@ export function buildProviderSummary(scored, state, { completedAt = new Date(), 
       percent: domain.max > 0 ? Math.round(domain.ratio * 100) : null,
       answeredCount: domain.answeredCount,
       cardinalMet: domain.cardinalMet,
+      screenedOnly: domain.screenedOnly,
       cardinalLabel: domain.cardinalLabel,
       cappedButLoaded: domain.cappedButLoaded,
       modifiers: domain.modifiers,
