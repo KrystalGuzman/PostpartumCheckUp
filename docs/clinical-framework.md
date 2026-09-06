@@ -63,6 +63,34 @@ Everything here is a **risk factor, not a symptom**. It never creates a pattern,
 
 A previous postpartum psychosis also lowers the threshold on the *current* safety screen: one endorsed reality-testing item is treated as an emergency rather than urgent. Recurrence after a later birth is high, onset is fast, and it is one of the few situations in perinatal mental health where care arranged in advance prevents an episode rather than only treating one.
 
+### Pressure and adaptation
+
+Two things, measured apart and then crossed, because neither says much alone.
+
+**Pressure** is a profile rather than a total: body, sleep debt, time, mental load, money, relationship, being the person everyone needs, identity, being judged, and — for parents of more than one — splitting themselves between the children. It is scored as circumstance, carries no severity weight, and is reported under context. A heavy load is not a finding about a person.
+
+**Adaptation** is the direction of travel under that load: finding your feet or slipping, whether rest still restores you, whether you feel more capable than a month ago, whether you can picture this easing, how much margin is left, whether a day costs more than it did, and whether good moments still land. This is scored as a symptom module, because losing ground *is* the clinical signal.
+
+Crossing them gives four readings:
+
+| | adapting | losing ground |
+|---|---|---|
+| **low pressure** | settled | **the load does not explain it** |
+| **high pressure** | carrying it, for now | the load has outrun capacity |
+
+The bottom-left cell is why the section exists. Someone with ordinary circumstances who is still losing ground is the person most likely to be told — and to tell themselves — that they have nothing to complain about. The result says so directly, raises the floor to yellow, adds a named driver so the level does not look unaccountable, and gives them the sentence to use: *"things are not especially hard right now and I am still going under."*
+
+The top-right cell matters too, in the other direction: a heavy load carried well is not converted into a clinical finding. The next step there is subtraction — naming the two heaviest pressures and taking something off them — not treatment.
+
+Two items are called out individually rather than only inside a band. **Rest no longer restoring** separates exhaustion from sleep debt and usually changes what a clinician looks for. **Good moments not landing** is anhedonia in the language people actually use.
+
+### Probing the difference in pressure
+
+For a parent who has done this before, "is it harder?" is the wrong question — it forces a single comparison onto something that has moved rather than grown. Two items do better:
+
+- **Where has the pressure moved?** — more confident with the baby but more depleted overall; less worry about the baby, more about everything else; the logistics rather than the baby; more physical this time; guilt spread across more people; less help; the same pressures, only heavier.
+- **The confidence/capacity split** — how the baby-care part feels *compared with everything around it*. Parenting self-efficacy reliably rises with experience while capacity for everything else falls, and a single "harder or easier" question cannot see that divergence. Endorsing "confident with the baby, struggling with everything else" produces a note naming the split, because it is missed in both directions: from outside she looks like someone who has this handled, and from inside it can feel as though there is no legitimate reason to be struggling.
+
 ### Caring for more than one child
 
 Built carefully, because it could easily rest on a folk belief. **Whether a later baby carries more risk than a first is genuinely unsettled** — some large samples put multiparous parents at lower risk than first-timers, others find no difference — so no result tells a parent that a subsequent baby is harder, and the tool says as much in plain terms.

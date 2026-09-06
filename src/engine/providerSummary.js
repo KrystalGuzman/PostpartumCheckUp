@@ -54,7 +54,7 @@ const answeredOrNot = (state, itemId) =>
   };
 
 export function buildProviderSummary(scored, state, { completedAt = new Date(), name = '' } = {}) {
-  const { safety, severity, functioning, domains, byDomain, bipolar, babyBlues, drivers, risk } = scored;
+  const { safety, severity, functioning, domains, byDomain, bipolar, babyBlues, drivers, risk, adaptation } = scored;
 
   const context = contextSection.items.map((item) => describeAnswer(state, item.id)).filter(Boolean);
 
@@ -131,6 +131,28 @@ export function buildProviderSummary(scored, state, { completedAt = new Date(), 
       items: safetyItems,
       intrusiveHarmThoughts: safety.intrusiveHarmThoughts,
     },
+    load: adaptation.answered
+      ? {
+          headline: adaptation.quadrant.headline,
+          statement: adaptation.quadrant.statement,
+          key: adaptation.quadrant.key,
+          pressureLevel: adaptation.pressureLevel,
+          pressureRaw: adaptation.pressureRaw,
+          pressureMax: adaptation.pressureMax,
+          adapting: adaptation.adapting,
+          adaptationRaw: adaptation.adaptationRaw,
+          adaptationMax: adaptation.adaptationMax,
+          topPressures: adaptation.topPressures,
+          signals: [
+            adaptation.restNotRestoring ? 'rest no longer restorative' : null,
+            adaptation.noMargin ? 'no margin remaining' : null,
+            adaptation.noForwardView ? 'no forward view' : null,
+            adaptation.goodMomentsNotLanding ? 'positive events not registering' : null,
+          ].filter(Boolean),
+          shiftLabels: adaptation.shiftLabels,
+          competentButDepleted: adaptation.competentButDepleted,
+        }
+      : null,
     risk: {
       factors: risk.factors,
       concernFloor: risk.concernFloor,

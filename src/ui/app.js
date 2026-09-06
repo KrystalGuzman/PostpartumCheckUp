@@ -336,6 +336,31 @@ function parentSummary(results) {
       .join('')}</ul>` : ''}
 
     ${
+      results.load
+        ? `<h2>The load, and how you are carrying it</h2>
+           <div class="load" data-key="${esc(results.load.key)}">
+             <strong>${esc(results.load.headline)}</strong>
+             <p style="margin:.5rem 0 0">${esc(results.load.statement)}</p>
+             ${
+               results.load.topPressures.length
+                 ? `<p class="small muted" style="margin:.6rem 0 0">Heaviest right now: ${esc(results.load.topPressures.map((t) => t.toLowerCase()).join('; '))}.</p>`
+                 : ''
+             }
+             ${
+               results.load.signals.length
+                 ? `<p class="small muted" style="margin:.3rem 0 0">You also said ${esc(results.load.signals.join('; '))}.</p>`
+                 : ''
+             }
+             ${
+               results.load.shiftLabels.length
+                 ? `<p class="small muted" style="margin:.3rem 0 0">Compared with last time: ${esc(results.load.shiftLabels.map((t) => t.toLowerCase()).join('; '))}.</p>`
+                 : ''
+             }
+           </div>`
+        : ''
+    }
+
+    ${
       results.riskFactors?.length
         ? `<h2>What you brought into this</h2>
            <p class="small muted">History and circumstances, not symptoms. They are here because they change what makes sense to do next, not because they are things you have done wrong.</p>
@@ -412,7 +437,7 @@ function patternCard(p) {
 /** The clinician handout: what was answered, not a retelling of it. */
 function providerDoc(scored, results) {
   const provider = buildProviderSummary(scored, state, { completedAt: ui.completedAt, name: ui.name });
-  const { meta, safety, patterns, contextPatterns, functioning, context, scenarioResponses, bipolar, risk } = provider;
+  const { meta, safety, patterns, contextPatterns, functioning, context, scenarioResponses, bipolar, risk, load } = provider;
 
   const patternBlock = (p) => `<div class="pattern">
     <div class="head">
@@ -491,6 +516,25 @@ function providerDoc(scored, results) {
           : ''
       }
     </section>
+
+    ${
+      load
+        ? `<section>
+             <h2>Load and adaptation</h2>
+             <p><strong>${esc(load.headline)}</strong></p>
+             <table class="doc-table">
+               <tbody>
+                 <tr><th scope="row">Pressure</th><td>${esc(load.pressureLevel)} (${load.pressureRaw}/${load.pressureMax})</td></tr>
+                 <tr class="${load.adapting === 'losing' ? 'flagged' : ''}"><th scope="row">Adaptation</th><td>${esc(load.adapting)} (${load.adaptationRaw}/${load.adaptationMax})</td></tr>
+                 ${load.topPressures.length ? `<tr><th scope="row">Heaviest pressures</th><td>${esc(load.topPressures.map((p) => `${p.text} (${p.score})`).join('; '))}</td></tr>` : ''}
+                 ${load.signals.length ? `<tr><th scope="row">Adaptation signals</th><td>${esc(load.signals.join('; '))}</td></tr>` : ''}
+                 ${load.shiftLabels.length ? `<tr><th scope="row">Shift since last baby</th><td>${esc(load.shiftLabels.join('; '))}</td></tr>` : ''}
+               </tbody>
+             </table>
+             <p class="small muted">${esc(load.statement)}</p>
+           </section>`
+        : ''
+    }
 
     ${
       risk.factors.length

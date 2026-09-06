@@ -12,6 +12,7 @@ import { registry } from './questionnaire.js';
 import { selectScenarios } from '../data/scenarios.js';
 import { evaluateSafety, levelRank } from './safety.js';
 import { evaluateRiskFactors } from './riskFactors.js';
+import { evaluateAdaptation } from './adaptation.js';
 import { allModules } from '../data/modules.js';
 
 export const BANDS = ['minimal', 'low', 'moderate', 'high'];
@@ -30,6 +31,17 @@ export const DOMAIN_META = {
   bipolar: { label: 'Bipolar-spectrum warning signs', group: 'symptom', severityWeight: 1 },
   adjustment: { label: 'Adjustment and life-stress response', group: 'symptom', severityWeight: 1 },
   siblings: { label: 'Strain of caring for more than one child', group: 'symptom', severityWeight: 1 },
+  // Pressure is circumstance and never drives the level. Adaptation — the
+  // direction of travel under that pressure — is the part that does.
+  pressure: { label: 'Where the pressure is sitting', group: 'context', severityWeight: 0 },
+  adaptation: {
+    label: 'Difficulty adapting to the load',
+    group: 'symptom',
+    severityWeight: 1,
+    // "at a high level" reads backwards for a domain whose high end means
+    // adapting badly, so this domain supplies its own phrasing for drivers.
+    driverLabel: 'difficulty adapting to what you are carrying',
+  },
   grief: { label: 'Grief and loss', group: 'symptom', severityWeight: 0.5 },
   medical: { label: 'Possible physical or medical contributors', group: 'context', severityWeight: 0 },
   support: { label: 'Relationship and support context', group: 'context', severityWeight: 0 },
@@ -349,6 +361,7 @@ const raiseSeverity = (current, floor) =>
 export function scoreAll(state) {
   const safety = evaluateSafety(state);
   const risk = evaluateRiskFactors(state);
+  const adaptation = evaluateAdaptation(state);
   const domains = Object.keys(DOMAIN_META).map((domainId) => scoreDomain(domainId, state));
   const byDomain = Object.fromEntries(domains.map((d) => [d.domain, d]));
   const functioning = scoreFunctioning(state);
@@ -383,15 +396,16 @@ export function scoreAll(state) {
     if (weight === 0) continue;
     if (domain.domain === 'baby_blues' && babyBlues.consistent) continue;
 
+    const phrase = DOMAIN_META[domain.domain].driverLabel;
     if (domain.band === 'high') {
       const floor = weight >= 1 ? 'orange' : 'yellow';
       if (raiseSeverity(severity, floor) !== severity) {
-        drivers.push(`${domain.label.toLowerCase()} at a high level`);
+        drivers.push(phrase ?? `${domain.label.toLowerCase()} at a high level`);
       }
       severity = raiseSeverity(severity, floor);
     } else if (domain.band === 'moderate') {
       if (raiseSeverity(severity, 'yellow') !== severity) {
-        drivers.push(`${domain.label.toLowerCase()} at a moderate level`);
+        drivers.push(phrase ? `some ${phrase}` : `${domain.label.toLowerCase()} at a moderate level`);
       }
       severity = raiseSeverity(severity, 'yellow');
     }
@@ -408,6 +422,13 @@ export function scoreAll(state) {
   if (bipolar.warning) {
     drivers.push('bipolar-spectrum warning signs, which change what kind of assessment is appropriate');
     severity = raiseSeverity(severity, 'orange');
+  }
+
+  // Losing ground without a load to explain it is the pattern most often
+  // dismissed. Name it as a driver so the level does not look unaccountable.
+  if (adaptation.quadrant?.key === 'unexplained') {
+    drivers.push('losing ground without a load that accounts for it');
+    severity = raiseSeverity(severity, 'yellow');
   }
 
   // History raises the floor without inventing symptoms. Only an episode in
@@ -438,6 +459,7 @@ export function scoreAll(state) {
   return {
     safety,
     risk,
+    adaptation,
     domains,
     byDomain,
     ranked: [...rankedSymptoms, ...rankedContext],

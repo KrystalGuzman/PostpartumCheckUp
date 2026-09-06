@@ -73,6 +73,17 @@ const DOMAIN_LANGUAGE = {
       'Your responses describe real strain in caring for more than one child. Most of what makes this hard is structural — two sets of needs and one of you — rather than anything about how you are doing it.',
     low: 'Your responses describe some of the ordinary friction of caring for more than one child.',
   },
+  adaptation: {
+    high: 'Your responses describe losing ground rather than adapting — effort going up while what you get back goes down. That direction of travel matters more than any single symptom on this page, and it is the part most worth describing to a professional in your own words.',
+    moderate:
+      'Your responses suggest you are holding rather than gaining ground, and that it is costing you more than it did. Worth watching closely, and worth mentioning before it becomes harder to climb out of.',
+    low: 'Your responses suggest you are broadly adapting, with some strain in it.',
+  },
+  pressure: {
+    high: 'You are carrying a heavy load across several fronts at once. That is a description of your circumstances, not of your capability.',
+    moderate: 'You are carrying a fair amount, concentrated in particular areas.',
+    low: 'The load you describe is within ordinary range for this stage.',
+  },
   medical: {
     high: 'Your responses mention several physical symptoms that can affect mood and energy. These need a medical assessment, not only a mental-health one.',
     moderate: 'Your responses mention physical symptoms that can affect mood and energy, and are worth a medical review.',
@@ -105,6 +116,12 @@ const PRIOR_EPISODE_NOTE =
 
 const PRIOR_PSYCHOSIS_NOTE =
   'You reported a previous postpartum episode involving loss of touch with reality or a psychiatric admission. This is the part of your history that most changes what should happen: recurrence after a later birth is high, onset can be fast, and it is one of the few situations in perinatal mental health where care put in place ahead of time is known to prevent an episode rather than only treat one. This warrants specialist perinatal psychiatric input now, whether or not you feel unwell today.';
+
+const COMPETENT_BUT_DEPLETED_NOTE =
+  'You said you feel confident with the baby and are struggling with everything around it. That split is worth saying out loud, because it is easy to miss in both directions: from the outside you look like someone who has this handled, and from the inside it can feel like there is no legitimate reason to be struggling. Knowing what to do with a baby and having the capacity to withstand everything else are different things, and only one of them gets easier with experience.';
+
+const REST_NOT_RESTORING_NOTE =
+  'You said rest no longer restores you. That is worth flagging on its own. Ordinary tiredness lifts, at least somewhat, when you finally get a stretch of sleep or an afternoon off; exhaustion that rest does not touch is a different thing, and it is one of the more reliable signs that what is going on has moved beyond sleep debt.';
 
 const INTRUSIVE_THOUGHTS_NOTE =
   'You mentioned unwanted, frightening thoughts about harm. Thoughts like these are reported by a very large share of new parents. An intrusive thought is not an intention and not a prediction, and the distress they cause you is itself evidence of how far they sit from what you want. They are also very treatable — clinicians who work in perinatal mental health hear about them constantly.';
@@ -157,7 +174,7 @@ export function stageSentence(weeks, exact = false) {
 
 export function buildResults(scored, state, regionId = 'us') {
   const region = getRegion(regionId);
-  const { safety, severity, functioning, rankedSymptoms, rankedContext, bipolar, babyBlues, drivers, risk } = scored;
+  const { safety, severity, functioning, rankedSymptoms, rankedContext, bipolar, babyBlues, drivers, risk, adaptation } = scored;
 
   const emergency = safety.stopScoring;
 
@@ -195,6 +212,8 @@ export function buildResults(scored, state, regionId = 'us') {
     if (risk.priorPerinatalMood) notes.push(PRIOR_EPISODE_NOTE);
     if (risk.firstBaby === false) notes.push(NOT_FIRST_BABY_NOTE);
     if (risk.harderThanLastTime) notes.push(HARDER_THAN_LAST_TIME_NOTE);
+    if (adaptation.competentButDepleted) notes.push(COMPETENT_BUT_DEPLETED_NOTE);
+    if (adaptation.restNotRestoring) notes.push(REST_NOT_RESTORING_NOTE);
     if (bipolar.warning) notes.push(medicationCautionNote());
   }
 
@@ -209,6 +228,25 @@ export function buildResults(scored, state, regionId = 'us') {
     severity,
     severityDrivers: drivers,
     riskFactors: risk.factors,
+    // Halted scoring means no load analysis either: it would only compete with
+    // the instruction to get seen.
+    load: !emergency && adaptation.answered
+      ? {
+          headline: adaptation.quadrant.headline,
+          statement: adaptation.quadrant.statement,
+          key: adaptation.quadrant.key,
+          pressureLevel: adaptation.pressureLevel,
+          adapting: adaptation.adapting,
+          topPressures: adaptation.topPressures.slice(0, 4).map((p) => p.text),
+          shiftLabels: adaptation.shiftLabels,
+          signals: [
+            adaptation.restNotRestoring ? 'rest has stopped restoring you' : null,
+            adaptation.noMargin ? 'there is no margin left for anything going wrong' : null,
+            adaptation.noForwardView ? 'you cannot picture this easing' : null,
+            adaptation.goodMomentsNotLanding ? 'the good moments are not reaching you' : null,
+          ].filter(Boolean),
+        }
+      : null,
     functionalImpact: {
       tier: functioning.tier,
       label: FUNCTIONING_LABEL[functioning.tier],
@@ -232,7 +270,7 @@ function medicationCautionNote() {
 }
 
 function buildNextSteps(scored, state, region) {
-  const { safety, severity, byDomain, bipolar, functioning, risk } = scored;
+  const { safety, severity, byDomain, bipolar, functioning, risk, adaptation } = scored;
   const steps = [];
 
   if (safety.stopScoring) {
@@ -299,6 +337,31 @@ function buildNextSteps(scored, state, region) {
     steps.push({
       priority: 'high',
       text: 'Tell whoever you see that you had a perinatal episode after a previous birth, and say what helped and what did not. It should move you up the list rather than down it.',
+    });
+  }
+  // What helps depends on which side of the load/adaptation split someone is on.
+  if (adaptation.quadrant?.key === 'carrying') {
+    steps.push({
+      priority: 'medium',
+      text: `You are carrying a lot and still adapting. The most useful thing here is subtraction rather than treatment — pick the heaviest one or two pressures you named${
+        adaptation.topPressures.length ? ` (${adaptation.topPressures.slice(0, 2).map((p) => p.text.toLowerCase()).join('; ')})` : ''
+      } and work out what would take even a quarter off them.`,
+    });
+  } else if (adaptation.quadrant?.key === 'unexplained') {
+    steps.push({
+      priority: 'high',
+      text: 'Your circumstances do not obviously account for how you are doing, and that is a reason to be assessed rather than a reason to doubt yourself. Say exactly that to whoever you see — "things are not especially hard right now and I am still going under" is a sentence clinicians take seriously.',
+    });
+  } else if (adaptation.quadrant?.key === 'outrun') {
+    steps.push({
+      priority: 'high',
+      text: 'Two things need to happen here rather than one: something has to come off the load, and how you are doing needs a professional look. Either alone tends not to hold.',
+    });
+  }
+  if (adaptation.restNotRestoring) {
+    steps.push({
+      priority: 'medium',
+      text: 'Mention specifically that rest is not restoring you any more. It separates exhaustion from sleep debt, and it usually changes what a clinician looks for.',
     });
   }
   if (risk.barriers.length) {
@@ -378,7 +441,7 @@ function buildNextSteps(scored, state, region) {
 }
 
 function buildProviderQuestions(scored, state) {
-  const { byDomain, bipolar, functioning, safety, risk } = scored;
+  const { byDomain, bipolar, functioning, safety, risk, adaptation } = scored;
   const questions = [];
   const strong = (domain) => ['moderate', 'high'].includes(byDomain[domain].band);
 
@@ -416,6 +479,12 @@ function buildProviderQuestions(scored, state) {
   }
   if (risk.firstBaby === false) {
     questions.push('Most of the advice I get assumes I have one child. What is realistic for recovery and rest when there is an older child at home?');
+  }
+  if (adaptation.quadrant?.key === 'unexplained') {
+    questions.push('My circumstances are not especially hard right now and I am still losing ground. What does that suggest to you, and what should we look at?');
+  }
+  if (adaptation.restNotRestoring) {
+    questions.push('Rest does not restore me any more — a good night makes almost no difference. Is that worth investigating beyond sleep deprivation?');
   }
   if (safety.reasons.length > 0) {
     questions.push('What should I do, and who should I call, if things get worse before my next appointment?');

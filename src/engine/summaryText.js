@@ -43,6 +43,20 @@ export function toPlainText(results, { includeResources = true } = {}) {
     rule();
   }
 
+  if (results.load) {
+    lines.push('THE LOAD, AND HOW YOU ARE CARRYING IT');
+    lines.push(wrap(results.load.headline));
+    lines.push(wrap(results.load.statement));
+    if (results.load.topPressures.length) {
+      lines.push(wrap(`Heaviest right now: ${results.load.topPressures.join('; ')}.`));
+    }
+    if (results.load.signals.length) lines.push(wrap(`You also said ${results.load.signals.join('; ')}.`));
+    if (results.load.shiftLabels.length) {
+      lines.push(wrap(`Compared with last time: ${results.load.shiftLabels.join('; ')}.`));
+    }
+    rule();
+  }
+
   if (results.riskFactors?.length) {
     lines.push('WHAT YOU BROUGHT INTO THIS');
     lines.push(wrap('History and circumstances, not symptoms.'));
@@ -173,6 +187,19 @@ export function toProviderText(provider) {
     lines.push(bullet('Reported unwanted, ego-dystonic intrusive thoughts about harm. Recorded as an obsessional pattern, not as risk.'));
   }
   rule();
+
+  if (provider.load) {
+    heading('Load and adaptation');
+    lines.push(provider.load.headline);
+    lines.push(bullet(`Pressure: ${provider.load.pressureLevel} (${provider.load.pressureRaw}/${provider.load.pressureMax})`));
+    lines.push(bullet(`Adaptation: ${provider.load.adapting} (${provider.load.adaptationRaw}/${provider.load.adaptationMax})`));
+    provider.load.topPressures.forEach((p) => lines.push(bullet(`[${p.score}] ${p.text}`)));
+    if (provider.load.signals.length) lines.push(bullet(`Signals: ${provider.load.signals.join('; ')}`));
+    if (provider.load.shiftLabels.length) lines.push(bullet(`Shift since last baby: ${provider.load.shiftLabels.join('; ')}`));
+    rule();
+    lines.push(wrap(provider.load.statement));
+    rule();
+  }
 
   if (provider.risk?.factors?.length) {
     heading('Risk factors');
