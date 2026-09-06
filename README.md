@@ -18,11 +18,12 @@ Everything runs in the browser. There is no backend, no account, and no analytic
 The check-up runs in this order, and the order is the point:
 
 1. **Context** — the baby's date of birth (which gives the exact stage; a coarse band is the fallback if someone would rather not give a date), birth, feeding, sleep, work, stressors, support. Contextual only; no circumstance is treated as inherently healthier than another.
-2. **Safety** — asked of everyone, before any symptom scoring. Self-harm, harm towards others, capacity to keep everyone safe, and reality testing.
-3. **Symptom modules** — baby blues (early weeks only), depression, anxiety, perinatal OCD, birth trauma, bipolar spectrum, adjustment, grief, physical contributors, and the support context.
-4. **Scenarios** — stage-matched everyday situations, from birth through the first birthday.
-5. **Functioning** — what the person can actually do, scored separately from how they feel.
-6. **Summary** — in two versions, switched at the top of the results page.
+2. **History** — episodes after a previous birth, whether help was obtained and whether it worked, mood during this pregnancy, lifetime psychiatric history. Risk factors, never symptoms.
+3. **Safety** — asked of everyone, before any symptom scoring. Self-harm, harm towards others, capacity to keep everyone safe, and reality testing.
+4. **Symptom modules** — baby blues (early weeks only), depression, anxiety, perinatal OCD, birth trauma, bipolar spectrum, adjustment, the load of caring for more than one child, grief, physical contributors, and the support context.
+5. **Scenarios** — stage-matched everyday situations, from birth through the first birthday, plus scenarios for parents doing this alongside older children.
+6. **Functioning** — what the person can actually do, scored separately from how they feel.
+7. **Summary** — in two versions, switched at the top of the results page.
 
 ### Two summaries
 
@@ -50,6 +51,8 @@ A full run is around 90 questions; conditional gates (trauma, grief, baby blues,
 - **Severity is never just a number.** Bands are adjusted by explicit, logged modifiers — duration, trajectory, controllability, time consumed, avoidance — and every adjustment is shown to the user in plain language.
 - **Intrusive thoughts are not intent.** The OCD module asks about the person's *relationship* to the thought. Ego-dystonic distress routes to the OCD pattern; loss of insight routes to the psychosis pathway instead.
 - **Exhaustion is not mania.** The bipolar module turns on decreased *need* for sleep, explicitly distinguished from being kept awake by a baby.
+- **History is a risk factor, not a symptom.** A previous perinatal episode, bipolar disorder, or antenatal depression can raise the floor of concern and change the next step, but never creates a symptom pattern or adds to a band. A previous postpartum psychosis also lowers the threshold on the current safety screen.
+- **A later baby is not assumed to be harder.** The research on parity genuinely conflicts, so no result claims otherwise. What the tool weighs instead is the person's own history and their own load — and it says plainly that experience is not immunity.
 - **Grief is not depression.** Grief is reported as grief, can coexist with anything else, and does not on its own escalate to a clinical concern.
 - **Multiple patterns, not one verdict.** Nobody is forced into a single category.
 - **No shaming, ever.** No result implies that needing help makes someone a bad parent, that loving a baby protects against illness, or that psychosis is severe anxiety. There is a test that greps generated output for banned phrasings.

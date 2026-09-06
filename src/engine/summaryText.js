@@ -43,6 +43,16 @@ export function toPlainText(results, { includeResources = true } = {}) {
     rule();
   }
 
+  if (results.riskFactors?.length) {
+    lines.push('WHAT YOU BROUGHT INTO THIS');
+    lines.push(wrap('History and circumstances, not symptoms.'));
+    results.riskFactors.forEach((f) => {
+      lines.push(bullet(f.label));
+      if (f.detail) lines.push(`  ${wrap(f.detail, '  ', 76)}`);
+    });
+    rule();
+  }
+
   const patternBlock = (title, list) => {
     if (!list.length) return;
     lines.push(title);
@@ -163,6 +173,19 @@ export function toProviderText(provider) {
     lines.push(bullet('Reported unwanted, ego-dystonic intrusive thoughts about harm. Recorded as an obsessional pattern, not as risk.'));
   }
   rule();
+
+  if (provider.risk?.factors?.length) {
+    heading('Risk factors');
+    lines.push(wrap('History and circumstance, reported separately from symptoms and never scored into a band.'));
+    rule();
+    for (const weight of ['high', 'elevated', 'context']) {
+      for (const factor of provider.risk.factors.filter((f) => f.weight === weight)) {
+        lines.push(bullet(`[${weight}] ${factor.label}`));
+        if (factor.detail) lines.push(`    ${wrap(factor.detail, '    ', 72)}`);
+      }
+    }
+    rule();
+  }
 
   const patternBlock = (title, list) => {
     if (!list.length) return;

@@ -46,6 +46,14 @@ export function createState(registry, initial = {}) {
       return responses[id]?.score ?? null;
     },
 
+    /** The chosen option object, for callers that need its metadata. */
+    optionOf(id, value = null) {
+      const item = registry.getItem(id);
+      const chosen = value ?? responses[id]?.value ?? null;
+      if (!item || chosen == null) return null;
+      return item.options?.find((o) => o.value === chosen) ?? null;
+    },
+
     /** True when a multi-choice gate has a real selection (not "none", not declined). */
     gatePassed(id) {
       const value = responses[id]?.value;

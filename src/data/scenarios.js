@@ -253,6 +253,73 @@ export const scenarios = [
     ],
   ),
 
+  // --- Doing this with more than one child --------------------------------
+  scenario(
+    'sc_sib_regression',
+    'siblings',
+    ['siblings', 'adjustment'],
+    'Your older child has started up again at night, or asking to be a baby, or hitting out at the baby when you are not looking.',
+    'How is that landing on you?',
+    [
+      opt('expected', 'As expected. It is a big change for them and we are working through it.', {}),
+      opt('draining', 'It is draining. I am parenting a regression and a newborn at once.', { siblings: 2 }),
+      opt('guilt', 'I feel like I did this to them, and the guilt sits on me.', { siblings: 3, depression: 1 }),
+      opt('anger', 'I lose my temper with them more than I want to, and it frightens me afterwards.', { siblings: 3, depression: 2 }),
+    ],
+  ),
+  scenario(
+    'sc_sib_no_recovery',
+    'siblings',
+    ['siblings', 'depression'],
+    'The baby finally goes down. Your older child appears in the doorway, wide awake and wanting you.',
+    'What happens in you at that moment?',
+    [
+      opt('fine', 'I manage. It is the job.', {}),
+      opt('flat', 'Something in me goes flat. I do it anyway.', { siblings: 2, depression: 1 }),
+      opt('never_stops', 'It hits me that there is no point in the day where I get to stop.', { siblings: 3, depression: 2 }),
+      opt('breaking', 'I feel like I am coming apart, and I have nowhere to put it.', { siblings: 3, depression: 3 }),
+    ],
+  ),
+  scenario(
+    'sc_sib_divided',
+    'siblings',
+    ['siblings', 'grief'],
+    'The baby needs feeding and your older child has been waiting all afternoon for you to do something with them.',
+    'Which is closest to what that is like?',
+    [
+      opt('juggle', 'I juggle it. Nobody gets all of me but everybody gets some.', {}),
+      opt('torn', 'I feel torn, and whichever one I choose I feel I have let the other down.', { siblings: 2 }),
+      opt('failing', 'I feel like I am failing both of them, every day.', { siblings: 3, depression: 2 }),
+      opt('mourning', 'I miss what I had with my older one before, and I feel disloyal even thinking it.', { siblings: 3, grief: 3 }),
+    ],
+  ),
+  scenario(
+    'sc_sib_support_gap',
+    'siblings',
+    ['siblings', 'adjustment'],
+    'With your first, there were visitors, meals, people wanting a turn. This time it has been quieter.',
+    'How does that sit?',
+    [
+      opt('relief', 'Honestly, a relief. I did not want the fuss.', {}),
+      opt('noticed', 'I have noticed, and it stings a bit.', { siblings: 1 }),
+      opt('alone', 'I am doing far more of it alone than I did last time.', { siblings: 3, adjustment: 2 }),
+      opt('forgotten', 'It feels like everyone assumes I am fine because it is not my first.', { siblings: 3, depression: 1 }),
+    ],
+  ),
+  scenario(
+    'sc_sib_should_know',
+    'siblings',
+    ['siblings', 'depression'],
+    'Someone says, "Well, you know what you\u2019re doing this time."',
+    'What do you say, and what do you actually think?',
+    [
+      opt('true', 'It is broadly true. Some of it is easier.', {}),
+      opt('smile', 'I smile and agree, and keep the rest to myself.', { siblings: 2 }),
+      opt('unsaid', 'I have stopped saying I am struggling, because I am supposed to know how.', { siblings: 3, depression: 2 }),
+      opt('worse', 'I am worse this time than I was with my first, and almost nobody knows.', { siblings: 3, depression: 3 }),
+    ],
+  ),
+
   // --- Months 6-12 -------------------------------------------------------
   scenario(
     'sc_m612_mobility',
@@ -348,11 +415,15 @@ export const STAGE_FOR_WEEKS = (weeks) => {
  * expire — but only ones with an endorsed corresponding context answer are
  * shown, so nobody is asked about a NICU stay they did not have.
  */
-export function selectScenarios(state, limit = 6) {
+export function selectScenarios(state) {
   const stage = STAGE_FOR_WEEKS(state.weeksPostpartum);
-  const birth = scenarios.filter((s) => s.stage === 'birth' && birthScenarioApplies(s, state));
-  const staged = scenarios.filter((s) => s.stage === stage);
-  return [...birth, ...staged].slice(0, limit);
+  const birth = scenarios.filter((s) => s.stage === 'birth' && birthScenarioApplies(s, state)).slice(0, 3);
+  const staged = scenarios.filter((s) => s.stage === stage).slice(0, 4);
+  // Sibling scenarios are additive rather than a replacement: someone with two
+  // children still has whatever their stage brings.
+  const siblings =
+    state.valueOf('ctx_first_baby') === 'no' ? scenarios.filter((s) => s.stage === 'siblings').slice(0, 3) : [];
+  return [...birth, ...staged, ...siblings];
 }
 
 function birthScenarioApplies(scenarioItem, state) {

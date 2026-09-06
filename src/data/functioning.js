@@ -36,6 +36,9 @@ export const functioningSection = {
     fn('fn_relationships', 'Staying connected to the people who matter to you'),
     fn('fn_baby_care', 'Doing the practical care your baby needs'),
     fn('fn_baby_enjoy', 'Being present with your baby — playing, responding, enjoying them'),
+    fn('fn_other_children', 'Caring for your other children — and being present with them, not only managing them', {
+      showIf: (state) => state.valueOf('ctx_first_baby') === 'no',
+    }),
     fn('fn_self_care', 'Looking after yourself — medication, food, follow-up, rest'),
     fn('fn_responsibilities', 'Ordinary responsibilities — bills, messages, the house'),
   ],

@@ -37,6 +37,8 @@ An interruption always offers both paths. Emergency defaults to going straight t
 
 Rapid onset matters: postpartum psychosis characteristically develops over days, most often in the first two weeks.
 
+A **previous postpartum psychosis lowers the threshold**. Where someone reports an earlier episode involving loss of touch with reality or a psychiatric admission, a single endorsed core item is treated as an emergency rather than urgent, and the reason given says so. Recurrence after a later birth is high and onset can be fast, so the usual requirement for a second signal is waived. This is why the history section is asked before the safety screen rather than after it.
+
 **Self-harm.** Graded rather than lumped together. Passive thoughts of being better off gone are `elevated`; thoughts of hurting oneself without intent are `urgent`; a plan, intent, or uncertainty about staying safe is `emergency`.
 
 **Harm towards others.** The question distinguishes what the person's experience of the thought is, not how alarming it sounds:

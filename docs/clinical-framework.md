@@ -49,6 +49,30 @@ Two rules apply everywhere:
 
 ## Modules
 
+### Perinatal and psychiatric history
+
+Added because history is the strongest predictor in this field and the check-up originally asked for none of it. Covered: episodes after a previous birth (depression, anxiety, intrusive thoughts, birth trauma, psychosis or admission), whether help was obtained and whether it worked, mood during this pregnancy, lifetime psychiatric history, and — for parents who have done this before — their own comparison with last time.
+
+Everything here is a **risk factor, not a symptom**. It never creates a pattern, never adds to a band, and never appears in a list of what someone is experiencing. What it can do is raise the floor of concern, change the next step, and make sure a clinician is told:
+
+| Weight | What qualifies | Effect |
+|---|---|---|
+| high | Previous postpartum psychosis or psychiatric admission; bipolar disorder; previous psychosis | floors overall concern at amber |
+| elevated | Depression, anxiety or intrusive thoughts after a previous birth; low mood through most of this pregnancy; "much harder than last time" | floors it at yellow |
+| context | Lifetime history, treatment barriers last time, multiples, short interval, an older child with additional needs, less help than last time | reported and acted on, moves nothing |
+
+A previous postpartum psychosis also lowers the threshold on the *current* safety screen: one endorsed reality-testing item is treated as an emergency rather than urgent. Recurrence after a later birth is high, onset is fast, and it is one of the few situations in perinatal mental health where care arranged in advance prevents an episode rather than only treating one.
+
+### Caring for more than one child
+
+Built carefully, because it could easily rest on a folk belief. **Whether a later baby carries more risk than a first is genuinely unsettled** — some large samples put multiparous parents at lower risk than first-timers, others find no difference — so no result tells a parent that a subsequent baby is harder, and the tool says as much in plain terms.
+
+What is better supported is that the shape of the pressure differs, and that specific things which travel with having other children carry their own risk: a short gap between births, caring for a child with a disability or ongoing medical needs, less practical help than the first time, and the loss of any recovery period at all. Those are what the module asks about, as load rather than as facts about family size.
+
+It also asks the two questions that keep experienced parents out of care: whether they feel they should be able to handle this because they have done it before, and whether that has stopped them asking for help. The result names that directly — experience is not immunity, and "I should know how to do this by now" is among the most common reasons people wait too long to speak.
+
+Scored as a symptom module (it produces distress and impairment, like the adjustment module) but worded throughout as circumstance. Functioning gains an item about caring for the other children; the scenario bank gains stage-independent scenarios about divided attention, an older child's reaction, the help that did not come the second time, and being told "you know what you're doing this time".
+
 ### Common postpartum adjustment (Part 3)
 
 Not a diagnosis and not a scored module — a framing applied when nothing else stands out. The distinction from a clinical pattern is made on duration, severity, persistence, trajectory, functional impairment, distress, and capacity for self- and infant care, not on the fact of having recently given birth. The result text is careful never to say "that's normal" as a way of closing a conversation.

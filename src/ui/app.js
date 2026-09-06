@@ -335,6 +335,16 @@ function parentSummary(results) {
       .map((w) => `<li>${esc(w.label)}</li>`)
       .join('')}</ul>` : ''}
 
+    ${
+      results.riskFactors?.length
+        ? `<h2>What you brought into this</h2>
+           <p class="small muted">History and circumstances, not symptoms. They are here because they change what makes sense to do next, not because they are things you have done wrong.</p>
+           <ul class="plain">${results.riskFactors
+             .map((f) => `<li>${esc(f.label)}${f.detail ? `<br /><span class="small muted">${esc(f.detail)}</span>` : ''}</li>`)
+             .join('')}</ul>`
+        : ''
+    }
+
     <h2>Strongest patterns</h2>
     ${
       results.scoringHalted
@@ -402,7 +412,7 @@ function patternCard(p) {
 /** The clinician handout: what was answered, not a retelling of it. */
 function providerDoc(scored, results) {
   const provider = buildProviderSummary(scored, state, { completedAt: ui.completedAt, name: ui.name });
-  const { meta, safety, patterns, contextPatterns, functioning, context, scenarioResponses, bipolar } = provider;
+  const { meta, safety, patterns, contextPatterns, functioning, context, scenarioResponses, bipolar, risk } = provider;
 
   const patternBlock = (p) => `<div class="pattern">
     <div class="head">
@@ -481,6 +491,27 @@ function providerDoc(scored, results) {
           : ''
       }
     </section>
+
+    ${
+      risk.factors.length
+        ? `<section>
+             <h2>Risk factors</h2>
+             <p class="small muted">History and circumstance, reported separately from symptoms and never scored into a band.</p>
+             <table class="doc-table">
+               <tbody>
+                 ${risk.factors
+                   .map(
+                     (f) => `<tr class="${f.weight === 'high' ? 'flagged' : ''}">
+                       <th scope="row">${esc(f.label)}</th>
+                       <td>${esc(f.weight)}${f.detail ? `<br /><span class="small muted">${esc(f.detail)}</span>` : ''}</td>
+                     </tr>`,
+                   )
+                   .join('')}
+               </tbody>
+             </table>
+           </section>`
+        : ''
+    }
 
     <section>
       <h2>Symptom patterns</h2>

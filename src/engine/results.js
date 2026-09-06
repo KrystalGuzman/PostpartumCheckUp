@@ -67,6 +67,12 @@ const DOMAIN_LANGUAGE = {
     moderate: 'Your responses show tearfulness and mood swings in the early weeks.',
     low: 'Your responses show some emotional fluctuation in the early weeks.',
   },
+  siblings: {
+    high: 'Your responses describe a heavy load in caring for more than one child — being pulled between them, with no real chance to recover in between. That is a description of circumstances, not of something wrong with you, and it is also the kind of load that wears people into depression and anxiety if it does not let up.',
+    moderate:
+      'Your responses describe real strain in caring for more than one child. Most of what makes this hard is structural — two sets of needs and one of you — rather than anything about how you are doing it.',
+    low: 'Your responses describe some of the ordinary friction of caring for more than one child.',
+  },
   medical: {
     high: 'Your responses mention several physical symptoms that can affect mood and energy. These need a medical assessment, not only a mental-health one.',
     moderate: 'Your responses mention physical symptoms that can affect mood and energy, and are worth a medical review.',
@@ -87,6 +93,18 @@ const NORMAL_ADJUSTMENT =
 
 const REALITY_TESTING_NOTE =
   'You answered yes to at least one question about experiences that can involve losing touch with what is real — things others did not perceive, beliefs others contradicted, or ordinary events seeming to carry a message. A single "once or twice" is not a diagnosis of anything, and there are ordinary explanations, exhaustion among them. It is on this page because it is the one category where waiting is the wrong call: it should be assessed by a professional soon, in days rather than months, and sooner still if it becomes more frequent.';
+
+const NOT_FIRST_BABY_NOTE =
+  'Having done this before does not protect you. Whether a later baby carries more risk than a first is genuinely unsettled in the research — some large studies put experienced parents at lower risk, others find no difference — so this check-up does not assume either. What it does weigh is your own history and your own load, and those are what count. Experience is not immunity, and "I should know how to do this by now" is the single most common reason people wait too long to say something.';
+
+const HARDER_THAN_LAST_TIME_NOTE =
+  'You said this time is harder than last. Your own comparison across babies is better evidence than any average, and it is worth saying to a professional in exactly those words — it tends to land where a symptom list does not.';
+
+const PRIOR_EPISODE_NOTE =
+  'You came into this with a previous perinatal episode behind you. That is the strongest single predictor in this field: recurrence estimates run from roughly a quarter to about a half, higher when the earlier episode was severe. It is not a sentence — it is a reason to be seen early rather than to wait and see whether this settles, and a reason to say plainly what happened last time and what did or did not help.';
+
+const PRIOR_PSYCHOSIS_NOTE =
+  'You reported a previous postpartum episode involving loss of touch with reality or a psychiatric admission. This is the part of your history that most changes what should happen: recurrence after a later birth is high, onset can be fast, and it is one of the few situations in perinatal mental health where care put in place ahead of time is known to prevent an episode rather than only treat one. This warrants specialist perinatal psychiatric input now, whether or not you feel unwell today.';
 
 const INTRUSIVE_THOUGHTS_NOTE =
   'You mentioned unwanted, frightening thoughts about harm. Thoughts like these are reported by a very large share of new parents. An intrusive thought is not an intention and not a prediction, and the distress they cause you is itself evidence of how far they sit from what you want. They are also very treatable — clinicians who work in perinatal mental health hear about them constantly.';
@@ -139,7 +157,7 @@ export function stageSentence(weeks, exact = false) {
 
 export function buildResults(scored, state, regionId = 'us') {
   const region = getRegion(regionId);
-  const { safety, severity, functioning, rankedSymptoms, rankedContext, bipolar, babyBlues, drivers } = scored;
+  const { safety, severity, functioning, rankedSymptoms, rankedContext, bipolar, babyBlues, drivers, risk } = scored;
 
   const emergency = safety.stopScoring;
 
@@ -173,6 +191,10 @@ export function buildResults(scored, state, regionId = 'us') {
     if (patterns.length === 0 || patterns.every((p) => p.band === 'low')) notes.push(NORMAL_ADJUSTMENT);
     if (safety.intrusiveHarmThoughts) notes.push(INTRUSIVE_THOUGHTS_NOTE);
     if (safety.reasons.some((r) => r.code === 'psychosis_possible')) notes.push(REALITY_TESTING_NOTE);
+    if (risk.priorPostpartumPsychosis) notes.push(PRIOR_PSYCHOSIS_NOTE);
+    if (risk.priorPerinatalMood) notes.push(PRIOR_EPISODE_NOTE);
+    if (risk.firstBaby === false) notes.push(NOT_FIRST_BABY_NOTE);
+    if (risk.harderThanLastTime) notes.push(HARDER_THAN_LAST_TIME_NOTE);
     if (bipolar.warning) notes.push(medicationCautionNote());
   }
 
@@ -186,6 +208,7 @@ export function buildResults(scored, state, regionId = 'us') {
     stage: stageSentence(scored.weeksPostpartum, scored.exactAge),
     severity,
     severityDrivers: drivers,
+    riskFactors: risk.factors,
     functionalImpact: {
       tier: functioning.tier,
       label: FUNCTIONING_LABEL[functioning.tier],
@@ -209,7 +232,7 @@ function medicationCautionNote() {
 }
 
 function buildNextSteps(scored, state, region) {
-  const { safety, severity, byDomain, bipolar, functioning } = scored;
+  const { safety, severity, byDomain, bipolar, functioning, risk } = scored;
   const steps = [];
 
   if (safety.stopScoring) {
@@ -261,6 +284,45 @@ function buildNextSteps(scored, state, region) {
     steps.push({
       priority: 'high',
       text: `Ask for a bipolar-spectrum assessment with ${providerRoutes.psychiatry} before starting or changing any mood medication.`,
+    });
+  }
+  if (risk.priorPostpartumPsychosis) {
+    steps.push({
+      priority: 'high',
+      text: `Ask to be referred to ${providerRoutes.psychiatry} on the basis of your history, separately from how you feel today. A previous postpartum psychotic episode is one of the few things in this field where a plan made in advance — including what happens in the first days after any future birth — measurably changes the outcome.`,
+    });
+    steps.push({
+      priority: 'high',
+      text: 'Agree a plan with someone close to you for what to do if you start to seem unwell, including who they call. Onset can be fast, and it is often other people who notice first.',
+    });
+  } else if (risk.priorPerinatalMood) {
+    steps.push({
+      priority: 'high',
+      text: 'Tell whoever you see that you had a perinatal episode after a previous birth, and say what helped and what did not. It should move you up the list rather than down it.',
+    });
+  }
+  if (risk.barriers.length) {
+    steps.push({
+      priority: 'medium',
+      text: 'Last time, getting help either did not happen or did not work. Say that out loud at the next appointment, along with what got in the way — a referral that never came, a wait, a treatment that did nothing. It is the fastest way to avoid repeating it.',
+    });
+  }
+  if (risk.firstBaby === false) {
+    steps.push({
+      priority: 'medium',
+      text: 'Ask for help with your older children, not only with the baby — someone to do a school run, take them for an afternoon, or hold the baby while you are with them. Practical cover for the other children is the help most often not offered and most often needed.',
+    });
+  }
+  if (risk.demandingOlderChild) {
+    steps.push({
+      priority: 'medium',
+      text: "Mention your older child's needs when you describe your situation. Caregiving load of that kind is a real contributor to how you are doing, and postpartum appointments rarely ask about it.",
+    });
+  }
+  if (risk.multiples) {
+    steps.push({
+      priority: 'medium',
+      text: 'Look for a multiples-specific support group. Parents of twins carry a somewhat higher risk in the first six months, and groups for multiples tend to be far more useful than general baby groups.',
     });
   }
   if (['moderate', 'high'].includes(byDomain.ocd.band)) {
@@ -316,7 +378,7 @@ function buildNextSteps(scored, state, region) {
 }
 
 function buildProviderQuestions(scored, state) {
-  const { byDomain, bipolar, functioning, safety } = scored;
+  const { byDomain, bipolar, functioning, safety, risk } = scored;
   const questions = [];
   const strong = (domain) => ['moderate', 'high'].includes(byDomain[domain].band);
 
@@ -345,6 +407,15 @@ function buildProviderQuestions(scored, state) {
   }
   if (functioning.tier === 'significant' || functioning.tier === 'severe') {
     questions.push('This is affecting what I can actually do day to day. What support is available quickly, and what is the waiting time?');
+  }
+  if (risk.priorPostpartumPsychosis) {
+    questions.push('I had a postpartum psychotic episode after a previous birth. What monitoring or preventive treatment should be in place for me, and who should be managing that?');
+  }
+  if (risk.priorPerinatalMood) {
+    questions.push('I had a perinatal episode after a previous birth. Given the recurrence rate, should I be seen sooner or more often rather than waiting to see how this goes?');
+  }
+  if (risk.firstBaby === false) {
+    questions.push('Most of the advice I get assumes I have one child. What is realistic for recovery and rest when there is an older child at home?');
   }
   if (safety.reasons.length > 0) {
     questions.push('What should I do, and who should I call, if things get worse before my next appointment?');

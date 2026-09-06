@@ -47,16 +47,27 @@ export function evaluateSafety(state) {
   const insightAbsent = state.has('insight_absent');
   const insightUncertain = state.has('insight_uncertain');
 
+  // Someone who has had a postpartum psychosis before does not need to reach
+  // the usual threshold: recurrence is high, onset is fast, and a single odd
+  // experience in that context is worth an urgent look rather than a wait.
+  const priorPostpartumPsychosis = state.has('prior_postpartum_psychosis') || state.has('lifetime_psychosis');
+
   // --- Reality testing ----------------------------------------------------
   const psychosisEmergency =
     coreMax >= 2 ||
     coreEndorsed >= 2 ||
-    (coreEndorsed >= 1 && (rapidOnset || observed >= 2)) ||
+    (coreEndorsed >= 1 && (rapidOnset || observed >= 2 || priorPostpartumPsychosis)) ||
     insightAbsent ||
     (insightUncertain && coreEndorsed >= 1);
 
   if (psychosisEmergency) {
-    add('emergency', 'psychosis', 'Responses describing experiences that need urgent assessment of reality testing');
+    add(
+      'emergency',
+      'psychosis',
+      priorPostpartumPsychosis && coreEndorsed >= 1 && coreMax < 2
+        ? 'Experiences affecting reality testing, in someone who has had a postpartum psychotic episode before'
+        : 'Responses describing experiences that need urgent assessment of reality testing',
+    );
   } else if (coreEndorsed === 1 || observed >= 2 || insightUncertain) {
     add('urgent', 'psychosis_possible', 'One or more responses that need prompt assessment of reality testing');
   }
@@ -107,6 +118,7 @@ export function evaluateSafety(state) {
       observed,
       rapidOnset,
       insight: insightAbsent ? 'absent' : insightUncertain ? 'uncertain' : 'intact',
+      priorPostpartumPsychosis,
       declined: state.has('safety_declined'),
     },
   };

@@ -5,7 +5,8 @@
 
 import { contextSection } from '../data/context.js';
 import { safetySection } from '../data/safety.js';
-import { domainModules } from '../data/domains.js';
+import { allModules } from '../data/modules.js';
+import { historySection } from '../data/history.js';
 import { functioningSection } from '../data/functioning.js';
 import { scenarios, selectScenarios } from '../data/scenarios.js';
 
@@ -22,8 +23,11 @@ export const scenarioSection = {
 
 export const sections = [
   contextSection,
+  // History comes before the safety screen: a previous postpartum psychosis
+  // changes how the safety answers that follow should be weighed.
+  historySection,
   safetySection,
-  ...domainModules,
+  ...allModules,
   scenarioSection,
   functioningSection,
 ];

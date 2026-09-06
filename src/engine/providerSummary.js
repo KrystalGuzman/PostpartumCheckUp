@@ -22,6 +22,7 @@ export const LIMITATIONS = [
   'The scores below are specific to this tool. They are not EPDS, PHQ-9, GAD-7, MDQ or PCL-5 scores and should not be recorded as such. No validated instrument was reproduced; published instruments informed which constructs are covered, nothing more.',
   'Each band is a proportion of the items the patient actually answered. Declined and inapplicable items are excluded from both numerator and denominator, so a low band on a sparsely answered module means little.',
   'Safety responses are reported in full, including negatives, so that an unanswered question is distinguishable from a denial.',
+  'Risk factors are reported separately from symptoms. They are history and circumstance, not evidence of anything happening now, and they were never scored into a band.',
 ];
 
 /** The label a person chose, rather than the raw stored value. */
@@ -53,7 +54,7 @@ const answeredOrNot = (state, itemId) =>
   };
 
 export function buildProviderSummary(scored, state, { completedAt = new Date(), name = '' } = {}) {
-  const { safety, severity, functioning, domains, byDomain, bipolar, babyBlues, drivers } = scored;
+  const { safety, severity, functioning, domains, byDomain, bipolar, babyBlues, drivers, risk } = scored;
 
   const context = contextSection.items.map((item) => describeAnswer(state, item.id)).filter(Boolean);
 
@@ -129,6 +130,16 @@ export function buildProviderSummary(scored, state, { completedAt = new Date(), 
       flags: safety.reasons,
       items: safetyItems,
       intrusiveHarmThoughts: safety.intrusiveHarmThoughts,
+    },
+    risk: {
+      factors: risk.factors,
+      concernFloor: risk.concernFloor,
+      firstBaby: risk.firstBaby,
+      priorPostpartumPsychosis: risk.priorPostpartumPsychosis,
+      priorPerinatalMood: risk.priorPerinatalMood,
+      multiples: risk.multiples,
+      shortInterval: risk.shortInterval,
+      harderThanLastTime: risk.harderThanLastTime,
     },
     patterns,
     contextPatterns,

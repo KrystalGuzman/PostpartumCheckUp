@@ -11,7 +11,8 @@
 import { registry } from './questionnaire.js';
 import { selectScenarios } from '../data/scenarios.js';
 import { evaluateSafety, levelRank } from './safety.js';
-import { domainModules } from '../data/domains.js';
+import { evaluateRiskFactors } from './riskFactors.js';
+import { allModules } from '../data/modules.js';
 
 export const BANDS = ['minimal', 'low', 'moderate', 'high'];
 
@@ -28,6 +29,7 @@ export const DOMAIN_META = {
   trauma: { label: 'Trauma symptoms', group: 'symptom', severityWeight: 1 },
   bipolar: { label: 'Bipolar-spectrum warning signs', group: 'symptom', severityWeight: 1 },
   adjustment: { label: 'Adjustment and life-stress response', group: 'symptom', severityWeight: 1 },
+  siblings: { label: 'Strain of caring for more than one child', group: 'symptom', severityWeight: 1 },
   grief: { label: 'Grief and loss', group: 'symptom', severityWeight: 0.5 },
   medical: { label: 'Possible physical or medical contributors', group: 'context', severityWeight: 0 },
   support: { label: 'Relationship and support context', group: 'context', severityWeight: 0 },
@@ -61,7 +63,7 @@ function scenarioContribution(domainId, state) {
 }
 
 export function scoreDomain(domainId, state) {
-  const module = domainModules.find((m) => m.domain === domainId);
+  const module = allModules.find((m) => m.domain === domainId);
   const items = registry.scoredItemsForDomain(domainId);
   const answered = items.filter((item) => state.scoreOf(item.id) !== null);
 
@@ -101,7 +103,7 @@ export function scoreDomain(domainId, state) {
   };
 
   // Too little answered to say anything.
-  if (answered.length + scenario.max / 3 < 3) {
+  if (answered.length + scenario.max / 3 < 4) {
     applyCap('low', 'not enough answered questions in this section to say more');
   }
 
@@ -346,6 +348,7 @@ const raiseSeverity = (current, floor) =>
 
 export function scoreAll(state) {
   const safety = evaluateSafety(state);
+  const risk = evaluateRiskFactors(state);
   const domains = Object.keys(DOMAIN_META).map((domainId) => scoreDomain(domainId, state));
   const byDomain = Object.fromEntries(domains.map((d) => [d.domain, d]));
   const functioning = scoreFunctioning(state);
@@ -407,6 +410,15 @@ export function scoreAll(state) {
     severity = raiseSeverity(severity, 'orange');
   }
 
+  // History raises the floor without inventing symptoms. Only an episode in
+  // someone's own history moves it; load factors are reported and acted on but
+  // never lift the level by themselves.
+  if (risk.concernFloor !== 'green' && raiseSeverity(severity, risk.concernFloor) !== severity) {
+    const leading = risk.factors.find((f) => f.weight === (risk.concernFloor === 'orange' ? 'high' : 'elevated'));
+    if (leading) drivers.push(`your history: ${leading.label.toLowerCase()}`);
+  }
+  severity = raiseSeverity(severity, risk.concernFloor);
+
   // Part 19: safety always outranks the symptom picture.
   if (levelRank(safety.level) >= levelRank('urgent')) {
     severity = 'red';
@@ -425,6 +437,7 @@ export function scoreAll(state) {
 
   return {
     safety,
+    risk,
     domains,
     byDomain,
     ranked: [...rankedSymptoms, ...rankedContext],
