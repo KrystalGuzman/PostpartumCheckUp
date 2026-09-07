@@ -53,13 +53,28 @@ Two rules apply everywhere:
 
 Added because history is the strongest predictor in this field and the check-up originally asked for none of it. Covered: episodes after a previous birth (depression, anxiety, intrusive thoughts, birth trauma, psychosis or admission), whether help was obtained and whether it worked, mood during this pregnancy, lifetime psychiatric history, and — for parents who have done this before — their own comparison with last time.
 
-Everything here is a **risk factor, not a symptom**. It never creates a pattern, never adds to a band, and never appears in a list of what someone is experiencing. What it can do is raise the floor of concern, change the next step, and make sure a clinician is told:
+Everything here is a **risk factor, not a symptom**. It never creates a pattern, never adds to a band, and never appears in a list of what someone is experiencing.
 
-| Weight | What qualifies | Effect |
+**And it never decides how someone is doing.** History changes what care should be in place; the level she is shown comes only from what she reports about the present. An earlier version floored the level on history alone, which meant a woman who was entirely well but disclosed bipolar disorder or a previous postpartum psychosis was told she was a *"significant concern"*, with her diagnosis named as the reason. That is wrong twice over: it is not what the level means, and it penalises the disclosure the tool most depends on — from precisely the women whose risk is highest and whose care most needs planning. A screening tool that teaches people to conceal their history has defeated itself.
+
+So history is applied last, after everything about the present has settled, and only where the present is already showing something:
+
+| Current picture | Effect of history |
+|---|---|
+| clear | **nothing.** The level does not move, and no driver mentions history |
+| already yellow or above | raises it one step, capped at amber — never red |
+
+The reasoning behind the second row is that the same symptoms mean more in someone with that history, which is a statement about her symptoms, not about her past.
+
+Weights still matter, but for what they were always for — ordering the care-planning section and driving specific next steps:
+
+| Weight | What qualifies | What it drives |
 |---|---|---|
-| high | Previous postpartum psychosis or psychiatric admission; bipolar disorder; previous psychosis | floors overall concern at amber |
-| elevated | Depression, anxiety or intrusive thoughts after a previous birth; low mood through most of this pregnancy; "much harder than last time" | floors it at yellow |
-| context | Lifetime history, treatment barriers last time, multiples, short interval, an older child with additional needs, less help than last time | reported and acted on, moves nothing |
+| high | Previous postpartum psychosis or psychiatric admission; bipolar disorder; previous psychosis | referral to perinatal psychiatry on the basis of history alone; a plan agreed in advance |
+| elevated | Depression, anxiety or intrusive thoughts after a previous birth; low mood through most of this pregnancy; "much harder than last time" | being seen early rather than watchfully waiting |
+| context | Lifetime history, treatment barriers last time, multiples, short interval, an older child with additional needs, less help than last time | reported to the clinician; shapes advice |
+
+Where the current picture is clear, the summary says so in as many words: *"Nothing you have reported suggests you are unwell right now… Telling a professional about your history should get you seen more readily, not treated as more of a problem."*
 
 A previous postpartum psychosis also lowers the threshold on the *current* safety screen: one endorsed reality-testing item is treated as an emergency rather than urgent. Recurrence after a later birth is high, onset is fast, and it is one of the few situations in perinatal mental health where care arranged in advance prevents an episode rather than only treating one.
 

@@ -17,15 +17,53 @@ test('no history means no risk factors and no change to the floor', () => {
   assert.equal(risk.concernFloor, 'green');
 });
 
-test('a previous perinatal episode raises the floor to yellow without inventing symptoms', () => {
+test('a previous perinatal episode is recorded without being held against her', () => {
   const state = stateWith({ ...CLEAN_SAFETY, ctx_first_baby: 'no', hist_previous_perinatal: ['depression'] });
   assert.ok(codes(state).includes('prior_perinatal_mood'));
   assert.equal(evaluateRiskFactors(state).concernFloor, 'yellow');
 
+  // Recorded, but a woman with nothing going on now is not made a concern by
+  // having disclosed it.
   const scored = scoreAll(state);
-  assert.equal(scored.severityKey, 'yellow');
+  assert.equal(scored.severityKey, 'green');
   assert.equal(scored.byDomain.depression.band, 'minimal', 'history must not create a symptom pattern');
-  assert.ok(scored.drivers.some((d) => /your history/.test(d)));
+  assert.equal(scored.drivers.some((d) => /history/i.test(d)), false);
+  assert.equal(scored.risk.carePlanning.wellRightNow, true);
+  assert.equal(scored.risk.carePlanning.escalated, false);
+});
+
+test('the same symptoms carry further with a history behind them', () => {
+  // A moderate picture: enough answered items to clear the thin-data cap, and
+  // a ratio that lands at yellow rather than already at amber.
+  const symptoms = {
+    ...CLEAN_SAFETY,
+    ctx_stage: 'm3_6',
+    dep_mood: '2', dep_anhedonia: '2', dep_numb: '1', dep_guilt: '1', dep_energy: '1', dep_sleep: '1',
+    dep_duration: 'm1_3',
+  };
+  const without = scoreAll(stateWith(symptoms));
+  const withHistory = scoreAll(stateWith({ ...symptoms, ctx_first_baby: 'no', hist_previous_perinatal: ['depression'] }));
+
+  assert.equal(without.severityKey, 'yellow');
+  assert.equal(withHistory.severityKey, 'orange');
+  assert.equal(withHistory.risk.carePlanning.escalated, true);
+  assert.ok(withHistory.drivers.some((d) => /alongside what you are reporting now/.test(d)));
+});
+
+test('history can never push a result to red on its own', () => {
+  const everything = {
+    ...CLEAN_SAFETY,
+    ctx_stage: 'm3_6',
+    ctx_first_baby: 'no',
+    hist_previous_perinatal: ['depression', 'anxiety', 'intrusive', 'trauma', 'psychosis'],
+    hist_lifetime: ['depression', 'anxiety', 'ocd', 'ptsd', 'bipolar', 'psychosis'],
+    hist_pregnancy_mood: 'treated',
+    hist_compare: 'much_harder',
+    dep_mood: '3', dep_anhedonia: '3', dep_numb: '3', dep_guilt: '3', dep_energy: '3',
+    dep_duration: 'gt3m',
+  };
+  const scored = scoreAll(stateWith(everything));
+  assert.equal(scored.risk.carePlanning.afterHistory, 'orange', 'history tops out at amber');
 });
 
 test('a previous postpartum psychosis raises the floor to amber and drives a specific plan', () => {

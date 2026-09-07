@@ -62,7 +62,8 @@ export function toPlainText(results, { includeResources = true } = {}) {
   }
 
   if (results.riskFactors?.length) {
-    lines.push('WHAT YOU BROUGHT INTO THIS');
+    lines.push((results.carePlanning?.heading ?? 'What you brought into this').toUpperCase());
+    if (results.carePlanning) lines.push(wrap(results.carePlanning.statement));
     lines.push(wrap('History and circumstances, not symptoms.'));
     results.riskFactors.forEach((f) => {
       lines.push(bullet(f.label));

@@ -23,7 +23,7 @@ export const LIMITATIONS = [
   'Each band is a proportion of the items the patient actually answered. Declined and inapplicable items are excluded from both numerator and denominator, so a low band on a sparsely answered module means little.',
   'Safety responses are reported in full, including negatives, so that an unanswered question is distinguishable from a denial.',
   'Modules marked SCREENED ONLY were asked through their cardinal items alone, in the condensed version of the check-up, and are capped at moderate. They indicate where to look, not how much is there. Safety, history and adaptation are asked in full in both versions.',
-  'Risk factors are reported separately from symptoms. They are history and circumstance, not evidence of anything happening now, and they were never scored into a band.',
+  'Risk factors are reported separately from symptoms. They are history and circumstance, not evidence of anything happening now, and they were never scored into a band. History does not raise the overall level on its own: it raises it only where the current picture is already showing something, and never beyond amber.',
 ];
 
 /** The label a person chose, rather than the raw stored value. */
@@ -164,6 +164,7 @@ export function buildProviderSummary(scored, state, { completedAt = new Date(), 
       multiples: risk.multiples,
       shortInterval: risk.shortInterval,
       harderThanLastTime: risk.harderThanLastTime,
+      carePlanning: risk.carePlanning,
     },
     patterns,
     contextPatterns,

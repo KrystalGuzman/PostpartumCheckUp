@@ -482,7 +482,8 @@ function parentSummary(results) {
 
     ${
       results.riskFactors?.length
-        ? `<h2>What you brought into this</h2>
+        ? `<h2>${esc(results.carePlanning?.heading ?? 'What you brought into this')}</h2>
+           ${results.carePlanning ? `<p>${esc(results.carePlanning.statement)}</p>` : ''}
            <p class="small muted">History and circumstances, not symptoms. They are here because they change what makes sense to do next, not because they are things you have done wrong.</p>
            <ul class="plain">${results.riskFactors
              .map((f) => `<li>${esc(f.label)}${f.detail ? `<br /><span class="small muted">${esc(f.detail)}</span>` : ''}</li>`)

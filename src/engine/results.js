@@ -105,6 +105,9 @@ const NORMAL_ADJUSTMENT =
 const REALITY_TESTING_NOTE =
   'You answered yes to at least one question about experiences that can involve losing touch with what is real — things others did not perceive, beliefs others contradicted, or ordinary events seeming to carry a message. A single "once or twice" is not a diagnosis of anything, and there are ordinary explanations, exhaustion among them. It is on this page because it is the one category where waiting is the wrong call: it should be assessed by a professional soon, in days rather than months, and sooner still if it becomes more frequent.';
 
+const DISCLOSURE_NOTE =
+  'One thing worth saying plainly, because it stops people answering honestly: a psychiatric history does not make this check-up treat you as more of a problem. History is used to work out what care should be in place, never to decide how you are doing — that comes only from what you have described about now.';
+
 const NOT_FIRST_BABY_NOTE =
   'Having done this before does not protect you. Whether a later baby carries more risk than a first is genuinely unsettled in the research — some large studies put experienced parents at lower risk, others find no difference — so this check-up does not assume either. What it does weigh is your own history and your own load, and those are what count. Experience is not immunity, and "I should know how to do this by now" is the single most common reason people wait too long to say something.';
 
@@ -209,6 +212,7 @@ export function buildResults(scored, state, regionId = 'us') {
     if (patterns.length === 0 || patterns.every((p) => p.band === 'low')) notes.push(NORMAL_ADJUSTMENT);
     if (safety.intrusiveHarmThoughts) notes.push(INTRUSIVE_THOUGHTS_NOTE);
     if (safety.reasons.some((r) => r.code === 'psychosis_possible')) notes.push(REALITY_TESTING_NOTE);
+    if (risk.carePlanning?.applicable && risk.carePlanning.wellRightNow) notes.push(DISCLOSURE_NOTE);
     if (risk.priorPostpartumPsychosis) notes.push(PRIOR_PSYCHOSIS_NOTE);
     if (risk.priorPerinatalMood) notes.push(PRIOR_EPISODE_NOTE);
     if (risk.firstBaby === false) notes.push(NOT_FIRST_BABY_NOTE);
@@ -236,6 +240,15 @@ export function buildResults(scored, state, regionId = 'us') {
         ? 'This was the condensed check-up. The safety questions, your history, and how you are adapting were asked in full — nothing was trimmed there. The symptom sections were screened rather than worked through, so where a pattern shows below it is a signal to look further, not a measure of how much. Anything worth opening up is listed underneath, in the order your answers put it.'
         : null,
     riskFactors: risk.factors,
+    carePlanning: risk.carePlanning?.applicable
+      ? {
+          ...risk.carePlanning,
+          heading: risk.carePlanning.wellRightNow ? 'Care worth having in place' : 'What you brought into this',
+          statement: risk.carePlanning.wellRightNow
+            ? 'Nothing you have reported suggests you are unwell right now, and the level above reflects that — your history did not change it. What follows is not a judgment about how you are. It is about the care worth having in place because of what you have been through before. Telling a professional about your history should get you seen more readily, not treated as more of a problem; if it has ever felt like the opposite, that is a failure of the service, not a reason to keep it to yourself.'
+            : 'Your history did not decide the level above — what you have described about now did. What it does mean is that these symptoms are worth acting on sooner than they would be otherwise, which is why the level is a step higher than the symptoms alone would put it.',
+        }
+      : null,
     // Halted scoring means no load analysis either: it would only compete with
     // the instruction to get seen.
     load: !emergency && adaptation.answered

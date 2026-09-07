@@ -42,6 +42,10 @@
   display: inline-block; font-size: .74rem; text-transform: uppercase; letter-spacing: .07em;
   border-radius: 99px; padding: .12rem .55rem; border: 1px solid currentColor; white-space: nowrap;
 }
+.pill[data-weight="high"] { color: var(--orange); }
+.pill[data-weight="elevated"] { color: var(--yellow); }
+.pill[data-weight="context"] { color: var(--muted); }
+.unchanged { color: var(--green); }
 .pill[data-level="none"] { color: var(--green); }
 .pill[data-level="elevated"] { color: var(--yellow); }
 .pill[data-level="urgent"] { color: var(--orange); }

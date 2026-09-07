@@ -497,15 +497,19 @@ export function scoreAll(state) {
     severity = raiseSeverity(severity, 'yellow');
   }
 
-  // History raises the floor without inventing symptoms. Only an episode in
-  // someone's own history moves it; load factors are reported and acted on but
-  // never lift the level by themselves.
-  if (risk.concernFloor !== 'green' && raiseSeverity(severity, risk.concernFloor) !== severity) {
-    const leading = risk.factors.find((f) => f.weight === (risk.concernFloor === 'orange' ? 'high' : 'elevated'));
-    if (leading) drivers.push(`your history: ${leading.label.toLowerCase()}`);
-  }
-  severity = raiseSeverity(severity, risk.concernFloor);
-
+  // History changes what care should be in place. It does not change how
+  // someone is doing today, and it must not be allowed to say that it does.
+  //
+  // This used to raise the level on its own, which meant a woman who was
+  // completely well but disclosed bipolar disorder or a previous postpartum
+  // psychosis was told she was a "significant concern" — with her diagnosis
+  // named as the reason. That penalises exactly the disclosure this tool most
+  // needs, from exactly the people whose risk is highest.
+  //
+  // So history only moves the level when there is something current for it to
+  // act on: the same symptoms mean more in someone with that history. When the
+  // current picture is clear, history changes nothing here and is reported
+  // separately, as care worth having in place.
   // Part 19: safety always outranks the symptom picture.
   if (levelRank(safety.level) >= levelRank('urgent')) {
     severity = 'red';
@@ -514,6 +518,32 @@ export function scoreAll(state) {
     severity = raiseSeverity(severity, 'orange');
     drivers.unshift('safety-related responses that need to be followed up');
   }
+
+  // History is applied last, on top of everything the person has described
+  // about now, so that "is she showing anything?" is settled before history is
+  // allowed to weigh in at all.
+  const currentPicture = severity;
+  const historyApplies = risk.concernFloor !== 'green';
+  const historyEscalates =
+    historyApplies && SEVERITY_ORDER.indexOf(currentPicture) >= SEVERITY_ORDER.indexOf('yellow');
+
+  if (historyEscalates) {
+    severity = raiseSeverity(severity, 'orange');
+    if (severity !== currentPicture) {
+      drivers.push('your history, alongside what you are reporting now');
+    }
+  }
+
+  risk.carePlanning = {
+    applicable: historyApplies,
+    // True when nothing she has described about now is driving the level: the
+    // case where the tool must be clear it is not calling her unwell.
+    wellRightNow: currentPicture === 'green',
+    escalated: severity !== currentPicture,
+    beforeHistory: currentPicture,
+    afterHistory: severity,
+    factors: risk.factors.filter((f) => f.weight === 'high' || f.weight === 'elevated'),
+  };
 
   const byStrength = (a, b) => BANDS.indexOf(b.band) - BANDS.indexOf(a.band) || b.ratio - a.ratio;
   const reportable = domains.filter(

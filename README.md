@@ -68,7 +68,7 @@ In practice a full run is about 125 questions for a first baby and 150 with olde
 - **Intrusive thoughts are not intent.** The OCD module asks about the person's *relationship* to the thought. Ego-dystonic distress routes to the OCD pattern; loss of insight routes to the psychosis pathway instead.
 - **Exhaustion is not mania.** The bipolar module turns on decreased *need* for sleep, explicitly distinguished from being kept awake by a baby.
 - **Load and adaptation are measured apart, then crossed.** Pressure is circumstance and carries no severity weight; adaptation — gaining ground, holding, or slipping — is what drives the level. A heavy load carried well is not converted into a diagnosis; its next step is subtraction. Losing ground *without* a load to explain it raises concern, names itself as a driver, and gets said out loud, because it is the pattern most often dismissed as having nothing to complain about.
-- **History is a risk factor, not a symptom.** A previous perinatal episode, bipolar disorder, or antenatal depression can raise the floor of concern and change the next step, but never creates a symptom pattern or adds to a band. A previous postpartum psychosis also lowers the threshold on the current safety screen.
+- **History informs care; it does not decide how someone is doing.** A psychiatric history never raises the level of a woman who is currently well — it only lifts a level already showing something, and never past amber. Anything else penalises the disclosure the tool depends on, from the women whose risk is highest. A previous postpartum psychosis does lower the threshold on the current safety screen, which is a statement about her answers now, not about her past.
 - **A later baby is not assumed to be harder.** The research on parity genuinely conflicts, so no result claims otherwise. What the tool weighs instead is the person's own history and their own load — and it says plainly that experience is not immunity.
 - **Grief is not depression.** Grief is reported as grief, can coexist with anything else, and does not on its own escalate to a clinical concern.
 - **Multiple patterns, not one verdict.** Nobody is forced into a single category.
@@ -91,6 +91,9 @@ shows cannot drift from what the tool does.
   what it raises on its own and what it combines with. Single answers are
   computed against an otherwise clear screen; the combination column carries the
   rules a per-answer table cannot show.
+- **History and risk factors** — every history answer, its weight, and what it
+  does to the level in two cases: a woman who is well, and one already showing a
+  moderate picture. The first column must read *unchanged* on every row.
 - **The rules, one at a time** — each stated plainly with a button that loads a
   scenario demonstrating it, including the ones most worth arguing about.
 - **The whole safety space** — enumerate all 1,953,125 combinations of the nine

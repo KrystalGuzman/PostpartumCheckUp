@@ -162,21 +162,30 @@ export function createSweep({ seed = 20260907 } = {}) {
         fail('green-means-functioning-not-impaired', scored.functioning.tier, answers);
       }
       if (scored.bipolar.warning) fail('green-means-no-bipolar-warning', 'warning=true', answers);
-      if (scored.risk.concernFloor !== 'green') {
-        fail('green-means-no-risk-floor', scored.risk.concernFloor, answers);
-      }
     }
 
     if (safety.functionalCollapse?.collapsed && severity !== 'red') {
       fail('functional-collapse-is-red', `severity=${severity}`, answers);
     }
 
-    // Floors hold.
-    if (scored.risk.concernFloor === 'orange' && rank(severity) < rank('orange')) {
-      fail('high-risk-floor-holds', `severity=${severity}`, answers);
+    // History informs care, it does not decide how someone is doing. It may
+    // only lift a level that is already showing something, and never past
+    // amber. A psychiatric history must never be able to make a well person's
+    // result worse — that penalises the disclosure the tool depends on.
+    const care = scored.risk.carePlanning;
+    if (care?.escalated) {
+      if (care.afterHistory !== 'orange') {
+        fail('history-escalates-only-to-amber', `history took it to ${care.afterHistory}`, answers);
+      }
+      if (care.wellRightNow) {
+        fail('history-never-escalates-a-clear-picture', 'escalated from green', answers);
+      }
+      if (care.beforeHistory === care.afterHistory) {
+        fail('escalated-means-actually-moved', `${care.beforeHistory} -> ${care.afterHistory}`, answers);
+      }
     }
-    if (scored.risk.concernFloor === 'yellow' && rank(severity) < rank('yellow')) {
-      fail('elevated-risk-floor-holds', `severity=${severity}`, answers);
+    if (care?.wellRightNow && care.afterHistory !== 'green') {
+      fail('a-clear-picture-stays-clear', `${care.beforeHistory} -> ${care.afterHistory}`, answers);
     }
     if (scored.bipolar.warning && rank(severity) < rank('orange')) {
       fail('bipolar-warning-is-at-least-amber', `severity=${severity}`, answers);
@@ -425,4 +434,88 @@ export function createSweep({ seed = 20260907 } = {}) {
     randomCheckUps,
     monotonicity,
   };
+}
+
+/**
+ * The disclosure test, standalone because it is the property most easily lost:
+ * for a person who is currently well, adding any psychiatric history must not
+ * change the level she is shown.
+ */
+export function disclosureNeverPenalised() {
+  const failures = [];
+
+  const WELL = {
+    ...CLEAN_SAFETY,
+    ctx_stage: 'm3_6',
+    ctx_first_baby: 'no',
+    dep_mood: '0', dep_anhedonia: '0', dep_numb: '0', dep_energy: '1', dep_sleep: '1',
+    anx_worry: '1', anx_uncontrollable: '0', anx_physical: '0',
+    fn_get_up: '0', fn_eat: '0', fn_shower: '0', fn_sleep: '1', fn_baby_care: '0', fn_self_care: '0',
+    fn_appointments: '0', fn_leave_house: '0', fn_work: '0', fn_relationships: '0',
+    fn_baby_enjoy: '0', fn_responsibilities: '1',
+    ad_direction: '0', ad_restoration: '0', ad_confidence: '0', ad_forward: '0',
+    ad_margin: '1', ad_effort: '1', ad_good_moments: '0',
+  };
+
+  const build = (extra) => {
+    const s = createState(registry);
+    for (const [id, value] of Object.entries({ ...WELL, ...extra })) s.set(id, value);
+    return scoreAll(s);
+  };
+
+  const baseline = build({});
+  if (baseline.severityKey !== 'green') {
+    failures.push({ invariant: 'well-baseline-is-green', detail: baseline.severityKey, answers: '{}' });
+  }
+
+  // Every history answer the tool collects, one at a time and all together.
+  const histories = [
+    { hist_previous_perinatal: ['depression'] },
+    { hist_previous_perinatal: ['anxiety'] },
+    { hist_previous_perinatal: ['intrusive'] },
+    { hist_previous_perinatal: ['trauma'] },
+    { hist_previous_perinatal: ['psychosis'] },
+    { hist_lifetime: ['depression'] },
+    { hist_lifetime: ['anxiety'] },
+    { hist_lifetime: ['ocd'] },
+    { hist_lifetime: ['ptsd'] },
+    { hist_lifetime: ['bipolar'] },
+    { hist_lifetime: ['psychosis'] },
+    { hist_lifetime: ['eating'] },
+    { hist_pregnancy_mood: 'most' },
+    { hist_pregnancy_mood: 'treated' },
+    { hist_previous_help: 'none' },
+    { hist_compare: 'much_harder' },
+    { ctx_multiples: 'twins' },
+    { ctx_gap: 'lt12m' },
+    {
+      hist_previous_perinatal: ['depression', 'anxiety', 'intrusive', 'trauma', 'psychosis'],
+      hist_lifetime: ['depression', 'anxiety', 'ocd', 'ptsd', 'bipolar', 'psychosis', 'eating'],
+      hist_pregnancy_mood: 'treated',
+      hist_previous_help: 'none',
+      hist_compare: 'much_harder',
+      ctx_multiples: 'twins',
+      ctx_gap: 'lt12m',
+    },
+  ];
+
+  for (const history of histories) {
+    const scored = build(history);
+    if (scored.severityKey !== 'green') {
+      failures.push({
+        invariant: 'history-alone-never-raises-the-level',
+        detail: `${JSON.stringify(history)} gave ${scored.severityKey}`,
+        answers: JSON.stringify(history),
+      });
+    }
+    if (scored.drivers.some((d) => /history/i.test(d))) {
+      failures.push({
+        invariant: 'a-well-result-never-blames-history',
+        detail: scored.drivers.join('; '),
+        answers: JSON.stringify(history),
+      });
+    }
+  }
+
+  return { failures, checked: histories.length + 1 };
 }

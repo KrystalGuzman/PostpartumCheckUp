@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createSweep, REGIMES, EXPECTED_CEILING } from './support/sweep.js';
+import { createSweep, REGIMES, EXPECTED_CEILING, disclosureNeverPenalised } from './support/sweep.js';
 
 /**
  * A reduced run of the scenario sweep, so that the invariants are checked by
@@ -55,6 +55,19 @@ for (const regime of Object.keys(REGIMES)) {
     }
   });
 }
+
+test('disclosing a psychiatric history never worsens a well person\'s result', () => {
+  // The property most easily lost, and the one whose loss does most harm: if
+  // history could raise the level on its own, the tool would teach the women
+  // at highest risk to withhold the thing that most changes their care.
+  const { failures, checked } = disclosureNeverPenalised();
+  assert.ok(checked >= 19, `expected every history answer to be tried, got ${checked}`);
+  assert.deepEqual(
+    failures,
+    [],
+    `\n  ${failures.map((f) => `${f.invariant}: ${f.detail}`).join('\n  ')}`,
+  );
+});
 
 test('a worse answer never produces a milder result', () => {
   const sweep = createSweep({ seed: 99 });

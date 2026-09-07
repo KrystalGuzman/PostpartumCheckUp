@@ -17,6 +17,7 @@ import { evaluateSafety } from '../engine/safety.js';
 import { scoreAll } from '../engine/scoring.js';
 import { buildResults } from '../engine/results.js';
 import { safetySection } from '../data/safety.js';
+import { evaluateRiskFactors } from '../engine/riskFactors.js';
 
 const root = document.getElementById('review');
 
@@ -37,6 +38,16 @@ const CLEAN = {
   ocd_relationship: 'ego_dystonic',
   sup_safety: 'yes',
   hist_previous_perinatal: ['none'],
+  hist_lifetime: ['none'],
+  hist_pregnancy_mood: 'fine',
+  hist_previous_help: 'helped',
+  hist_compare: 'same',
+  ctx_multiples: 'single',
+  ctx_gap: 'y2_3',
+  ctx_other_children_needs: ['no'],
+  dep_mood: '0',
+  dep_anhedonia: '0',
+  dep_numb: '0',
   fn_get_up: '0',
   fn_eat: '0',
   fn_shower: '0',
@@ -58,6 +69,27 @@ const GROUPS = [
     note:
       'These sit inside other modules but feed the same evaluation, which is why the level is re-checked after every section rather than only after the safety screen.',
     items: ['ocd_relationship', 'sup_safety', 'hist_previous_perinatal'],
+  },
+  {
+    title: 'History and risk factors',
+    note:
+      'History decides what care should be in place. It does not decide how someone is doing now — that comes only from what she reports about the present. It can lift a level that is already showing something, never a clear one, and never past amber.',
+    items: [
+      'hist_previous_perinatal',
+      'hist_lifetime',
+      'hist_pregnancy_mood',
+      'hist_previous_help',
+      'hist_compare',
+      'ctx_multiples',
+      'ctx_gap',
+      'ctx_other_children_needs',
+    ],
+  },
+  {
+    title: 'Current symptoms (to test the interaction)',
+    note:
+      'History only moves the level when something current is already showing. Raise these to see the interaction; leave them at zero to confirm that history alone changes nothing.',
+    items: ['dep_mood', 'dep_anhedonia', 'dep_numb'],
   },
   {
     title: 'Functioning',
@@ -146,6 +178,16 @@ const RULES = [
     scenario: { __clear: ['saf_self_harm', 'saf_harm_others', 'saf_care_capacity'] },
   },
   {
+    name: 'A history does not make a well woman a concern',
+    detail: 'A previous postpartum psychosis, with nothing current: the level stays at low concern. History decides what care should be in place, not how she is doing. Raise the current-symptom questions and you will see it act.',
+    scenario: { hist_previous_perinatal: ['psychosis'] },
+  },
+  {
+    name: '…but the same symptoms mean more with that history',
+    detail: 'Moderate current symptoms alone reach amber-below; with a previous perinatal episode they reach amber. That is the interaction, and it is the only way history moves the level.',
+    scenario: { hist_previous_perinatal: ['depression'], dep_mood: '2', dep_anhedonia: '2', dep_numb: '2' },
+  },
+  {
     name: 'Not feeling safe at home',
     detail: 'Elevated, and it changes who the emergency pathway tells her to involve — someone from outside the home rather than a generic trusted adult.',
     scenario: { sup_safety: 'no' },
@@ -222,6 +264,77 @@ function triggerRows() {
 }
 
 const ROWS = triggerRows();
+
+/**
+ * What each history answer is worth, and — the part that matters — what it
+ * does and does not do to the level a woman is shown.
+ *
+ * Each answer is measured twice: against a woman with nothing going on, and
+ * against one already reporting a moderate picture. The first column must
+ * never move.
+ */
+
+/** A moderate current picture: enough answered items to be scored, landing at yellow. */
+const MODERATE_SYMPTOMS = {
+  dep_mood: '2',
+  dep_anhedonia: '2',
+  dep_numb: '1',
+  dep_guilt: '1',
+  dep_energy: '1',
+  dep_sleep: '1',
+  dep_duration: 'm1_3',
+};
+
+function scoreWith(extra) {
+  const state = createState(registry);
+  for (const [id, value] of Object.entries({ ...CLEAN, ...extra })) state.set(id, value);
+  return scoreAll(state);
+}
+
+function riskRows() {
+  const rows = [];
+  const historyItems = [
+    'hist_previous_perinatal',
+    'hist_lifetime',
+    'hist_pregnancy_mood',
+    'hist_previous_help',
+    'hist_compare',
+    'ctx_multiples',
+    'ctx_gap',
+    'ctx_other_children_needs',
+  ];
+
+  for (const id of historyItems) {
+    const item = registry.getItem(id);
+    if (!item?.options) continue;
+    for (const option of item.options) {
+      if (option.value === 'pna') continue;
+      const answer = item.type === 'multi' ? [option.value] : option.value;
+
+      const state = createState(registry);
+      for (const [k, v] of Object.entries(CLEAN)) state.set(k, v);
+      state.set(id, answer);
+      const factor = evaluateRiskFactors(state).factors.at(-1);
+      if (!factor) continue;
+
+      rows.push({
+        itemId: id,
+        question: item.text,
+        answer: option.label,
+        weight: factor.weight,
+        detail: factor.detail ?? '',
+        wellLevel: scoreWith({ [id]: answer }).severityKey,
+        symptomaticLevel: scoreWith({ ...MODERATE_SYMPTOMS, [id]: answer }).severityKey,
+        value: answer,
+      });
+    }
+  }
+  return rows;
+}
+
+const WELL_BASELINE = scoreWith({}).severityKey;
+const SYMPTOMATIC_BASELINE = scoreWith(MODERATE_SYMPTOMS).severityKey;
+const RISK_ROWS = riskRows();
 let filters = { level: 'warning', text: '' };
 
 // ---------------------------------------------------------------------------
@@ -390,6 +503,41 @@ function render() {
       <p class="muted-note">Each row is that answer alone, against an otherwise clear safety screen. The combination
         column matters as much as the level: several answers that look mild on their own escalate together.</p>
       <div id="trigger-table">${triggerTable()}</div>
+    </section>
+
+    <section class="panel">
+      <h2>History and risk factors</h2>
+      <p class="muted-note">The column that matters is the last pair. <strong>A well woman's result must not change
+        because she disclosed a history</strong> — if it did, the tool would be teaching the people at highest risk to
+        withhold the very thing that most changes their care. History raises a level only where the current picture is
+        already showing something, and never past amber.</p>
+      <div style="overflow-x:auto">
+      <table class="triggers">
+        <thead><tr>
+          <th>Question</th><th>Answer</th><th>Weight</th>
+          <th>If she is well<br /><span class="muted-note">baseline: low concern</span></th>
+          <th>With a moderate current picture<br /><span class="muted-note">baseline: ${esc(SYMPTOMATIC_BASELINE)}</span></th><th></th>
+        </tr></thead>
+        <tbody>
+          ${RISK_ROWS.map((row, index) => {
+            const continued = index > 0 && RISK_ROWS[index - 1].itemId === row.itemId;
+            const wellMoved = row.wellLevel !== WELL_BASELINE;
+            const symptomaticMoved = row.symptomaticLevel !== SYMPTOMATIC_BASELINE;
+            return `<tr${continued ? ' class="continued"' : ''}>
+              <td class="q">${continued ? '' : esc(row.question)}</td>
+              <td>${esc(row.answer)}</td>
+              <td><span class="pill" data-weight="${esc(row.weight)}">${esc(row.weight)}</span></td>
+              <td>${wellMoved ? `<strong>changed to ${esc(row.wellLevel)}</strong>` : '<span class="unchanged">unchanged — low concern</span>'}</td>
+              <td>${symptomaticMoved ? `raised ${esc(SYMPTOMATIC_BASELINE)} → <strong>${esc(row.symptomaticLevel)}</strong>` : `<span class="unchanged">unchanged — ${esc(SYMPTOMATIC_BASELINE)}</span>`}</td>
+              <td><button data-try="${esc(JSON.stringify({ [row.itemId]: row.value }))}">Try</button></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      </div>
+      <p class="muted-note">Weights order the care-planning section and drive specific next steps — a referral to
+        perinatal psychiatry for a previous postpartum psychosis, for instance. They no longer set a floor under the
+        overall level.</p>
     </section>
 
     <section class="panel">
