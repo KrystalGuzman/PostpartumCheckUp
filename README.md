@@ -74,6 +74,30 @@ In practice a full run is about 125 questions for a first baby and 150 with olde
 - **Multiple patterns, not one verdict.** Nobody is forced into a single category.
 - **No shaming, ever.** No result implies that needing help makes someone a bad parent, that loving a baby protects against illness, or that psychosis is severe anxiety. There is a test that greps generated output for banned phrasings.
 
+## Reviewing the safety logic
+
+`review.html` is an open page for clinicians and reviewers: **which answers raise a
+warning, and why**. It runs the check-up's own engine in the browser, so what it
+shows cannot drift from what the tool does.
+
+- **Try a scenario** — set any safety answer, the two safety-relevant questions
+  that live in other modules, a previous postpartum psychosis, or the functioning
+  items, and see the level, the findings, whether scoring halts, what interrupts,
+  and the first next step. *Copy link to this scenario* produces a URL that
+  reproduces those exact answers, so a reviewer can send back the case they
+  disagree with rather than describing it.
+- **Every answer, and what it raises** — all 101 answers across the
+  safety-relevant questions, filterable by level and searchable, each showing
+  what it raises on its own and what it combines with. Single answers are
+  computed against an otherwise clear screen; the combination column carries the
+  rules a per-answer table cannot show.
+- **The rules, one at a time** — each stated plainly with a button that loads a
+  scenario demonstrating it, including the ones most worth arguing about.
+- **The whole safety space** — enumerate all 1,953,125 combinations of the nine
+  safety questions in the browser, rather than taking the figures on trust.
+
+Linked from the foot of every page of the check-up itself.
+
 ## How it is checked
 
 Example-based tests were not enough. They all asserted something already

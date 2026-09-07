@@ -767,7 +767,8 @@ function resourceBlock(region) {
 function footnote() {
   return `<p class="footnote">Screening observations only — this check-up does not diagnose, and it cannot rule anything out.
     Built from published perinatal mental-health guidance; it reproduces no copyrighted questionnaire.
-    ${esc(DEPLOYMENT_NOTE)}</p>`;
+    ${esc(DEPLOYMENT_NOTE)}
+    <br /><a href="./review.html">For clinicians: which answers raise a warning, and why</a></p>`;
 }
 
 // ---------------------------------------------------------------------------
