@@ -6,7 +6,8 @@ It is **not** a diagnostic instrument. It produces screening observations, sympt
 
 ```
 npm start     # serve at http://localhost:4173
-npm test      # run the engine test suite
+npm test      # engine tests, including a reduced scenario sweep
+npm run sweep # the full sweep: the whole safety space, thousands of check-ups
 ```
 
 Everything runs in the browser. There is no backend, no account, and no analytics. Answers stay in memory unless the person explicitly opts in to saving them in their own browser, and they can delete them from the summary screen.
@@ -72,6 +73,39 @@ In practice a full run is about 125 questions for a first baby and 150 with olde
 - **Grief is not depression.** Grief is reported as grief, can coexist with anything else, and does not on its own escalate to a clinical concern.
 - **Multiple patterns, not one verdict.** Nobody is forced into a single category.
 - **No shaming, ever.** No result implies that needing help makes someone a bad parent, that loving a baby protects against illness, or that psychosis is severe anxiety. There is a test that greps generated output for banned phrasings.
+
+## How it is checked
+
+Example-based tests were not enough. They all asserted something already
+thought of, and a serious fault got through: someone reporting total functional
+collapse received an amber result and no warning, because severity could not
+reach red without a safety answer.
+
+So the suite now walks the answer space and asserts invariants that must hold
+for **every** combination of answers, rather than for the cases anyone thought
+to write down:
+
+- **The whole safety screen, exhaustively** — all 1,953,125 combinations of its
+  nine questions. Exactly eight produce no finding, and the sweep asserts that
+  number rather than trusting it.
+- **Every module at its worst, in isolation** — each one must reach the level
+  of concern it is meant to reach, against a clear safety screen with nothing
+  else endorsed. This is the check the reported fault would have failed.
+- **Thousands of randomly answered check-ups**, in four regimes: everything
+  random; the safety screen clear and everything else random (where the fault
+  lived); everything mild, which must come out green; everything at its worst,
+  which must come out red.
+- **Monotonicity** — worsening any single answer must never produce a milder
+  result, at any level.
+
+Every generated result is also checked for the things that must always be true:
+it renders without throwing, carries a severity, a stage, a disclaimer, a next
+step and local resources; a halted check-up shows no ordinary scoring; no
+output contains banned phrasing or an unwrapped line.
+
+`npm test` runs this at reduced scale so regressions are caught by the ordinary
+suite. `npm run sweep` runs it in full — roughly 16,000 complete results plus
+the exhaustive safety space, in about 70 seconds.
 
 ## Clinical basis
 

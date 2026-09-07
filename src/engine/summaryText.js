@@ -25,9 +25,9 @@ export function toPlainText(results, { includeResources = true } = {}) {
     lines.push(wrap(results.condensedNote));
     rule();
   }
-  lines.push(`Stage: ${results.stage}`);
-  lines.push(`Overall: ${results.severity.icon} ${results.severity.label}`);
-  lines.push(`Functional impact: ${results.functionalImpact.label}`);
+  lines.push(wrap(`Stage: ${results.stage}`));
+  lines.push(wrap(`Overall: ${results.severity.icon} ${results.severity.label}`));
+  lines.push(wrap(`Functional impact: ${results.functionalImpact.label}`));
   rule();
 
   if (results.severityDrivers.length) {
@@ -171,9 +171,9 @@ export function toProviderText(provider) {
   rule();
   if (provider.meta.name) lines.push(`Completed by: ${provider.meta.name}`);
   lines.push(`Completed: ${provider.meta.completedAtLabel}`);
-  lines.push(`Stage: ${provider.meta.stage}`);
-  lines.push(`Overall: ${provider.meta.severity.icon} ${provider.meta.severity.label}`);
-  lines.push(`Functional impact: ${provider.functioning.label}`);
+  lines.push(wrap(`Stage: ${provider.meta.stage}`));
+  lines.push(wrap(`Overall: ${provider.meta.severity.icon} ${provider.meta.severity.label}`));
+  lines.push(wrap(`Functional impact: ${provider.functioning.label}`));
   if (provider.meta.drivers.length) lines.push(wrap(`Driven by: ${provider.meta.drivers.join('; ')}`));
   rule();
 
@@ -231,9 +231,14 @@ export function toProviderText(provider) {
     list.forEach((p) => {
       const scoreLine = p.percent == null ? 'no scored items answered' : `${p.raw}/${p.max} = ${p.percent}%`;
       lines.push(
-        `${p.label}: ${p.band.toUpperCase()}${p.screenedOnly ? ' [SCREENED ONLY]' : ''} (${scoreLine}, ${p.answeredCount} items answered)`,
+        wrap(
+          `${p.label}: ${p.band.toUpperCase()}${p.screenedOnly ? ' [SCREENED ONLY]' : ''} (${scoreLine}, ${p.answeredCount} items answered)`,
+          '    ',
+        ),
       );
-      p.modifiers.forEach((m) => lines.push(`    ${m.effect}: ${wrap(m.reason, '    ', 68)}`));
+      // The effect prefix has to be inside the wrap, or it pushes the first
+      // line past the margin on its own.
+      p.modifiers.forEach((m) => lines.push(`    ${wrap(`${m.effect}: ${m.reason}`, '    ', 72)}`));
       if (p.cappedButLoaded) {
         lines.push(`    ${wrap('Note: symptom load here is substantial despite the capped band.', '    ', 68)}`);
       }

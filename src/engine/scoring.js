@@ -24,7 +24,10 @@ export const BANDS = ['minimal', 'low', 'moderate', 'high'];
  * head a list titled "strongest patterns".
  */
 export const DOMAIN_META = {
-  baby_blues: { label: 'Baby blues pattern', group: 'symptom', severityWeight: 0 },
+  // Weighted like any other symptom module. The benign case — mild, early,
+  // settling — is excluded by name in scoreAll, so this only bites when the
+  // pattern is severe or is not resolving.
+  baby_blues: { label: 'Baby blues pattern', group: 'symptom', severityWeight: 1 },
   depression: { label: 'Depression symptoms', group: 'symptom', severityWeight: 1 },
   anxiety: { label: 'Anxiety symptoms', group: 'symptom', severityWeight: 1 },
   ocd: { label: 'Intrusive thoughts and compulsive patterns', group: 'symptom', severityWeight: 1 },

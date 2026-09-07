@@ -2,11 +2,12 @@
   "name": "postpartum-checkup",
   "version": "0.1.0",
   "private": true,
-  "description": "An evidence-informed postpartum mental-health check-up and navigation tool. Screening observations only — not a diagnostic instrument.",
+  "description": "An evidence-informed postpartum mental-health check-up and navigation tool. Screening observations only \u2014 not a diagnostic instrument.",
   "type": "module",
   "scripts": {
     "start": "node scripts/serve.js",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "sweep": "node scripts/sweep.js"
   },
   "engines": {
     "node": ">=20"
