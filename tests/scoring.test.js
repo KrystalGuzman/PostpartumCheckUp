@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { scoreDomain, scoreAll, scoreFunctioning, evaluateBipolar } from '../src/engine/scoring.js';
-import { stateWith, fillDomain } from './helpers.js';
+import { stateWith, fillDomain, CLEAN_SAFETY } from './helpers.js';
 
 test('declined questions are left out of the ratio rather than counted as zero', () => {
   const declined = scoreDomain('depression', stateWith({ dep_mood: '3', dep_anhedonia: '3', dep_numb: 'pna' }));
@@ -87,6 +87,7 @@ test('reduced need for sleep alongside elevated mood is a bipolar warning sign',
 test('baby blues needs early onset, a settling trajectory, and room to breathe', () => {
   const settling = scoreAll(
     stateWith({
+      ...CLEAN_SAFETY,
       ctx_stage: 'w2_6',
       bb_tearful: '2',
       bb_swings: '2',
@@ -141,6 +142,7 @@ test('functioning tiers track difficulty, and severe self-care difficulty lifts 
 
 test('grief on its own does not get escalated into a clinical concern', () => {
   const answers = {
+    ...CLEAN_SAFETY,
     ctx_stage: 'm3_6',
     grief_event: ['birth_experience'],
     grief_waves: '3',
@@ -195,7 +197,7 @@ test('a scenario answered "not part of my experience" is dropped rather than sco
 });
 
 test('support strain is described but never drives the severity band', () => {
-  const answers = { ctx_stage: 'm3_6', sup_judged: '3', sup_dismissed: '3', sup_isolated: '3', sup_alone_within: '3' };
+  const answers = { ...CLEAN_SAFETY, ctx_stage: 'm3_6', sup_judged: '3', sup_dismissed: '3', sup_isolated: '3', sup_alone_within: '3' };
   const scored = scoreAll(stateWith(answers));
   assert.equal(scored.byDomain.support.band, 'high');
   assert.equal(scored.severityKey, 'green');

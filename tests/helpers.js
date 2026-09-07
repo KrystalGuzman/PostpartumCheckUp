@@ -1,6 +1,23 @@
 import { registry } from '../src/engine/questionnaire.js';
 import { createState } from '../src/engine/state.js';
 
+/**
+ * A safety screen answered and clear. Spread this into any state that is
+ * testing something else: leaving the safety questions blank is itself a
+ * finding, so a state without it is not a neutral baseline.
+ */
+export const CLEAN_SAFETY = {
+  saf_self_harm: 'none',
+  saf_harm_others: 'none',
+  saf_care_capacity: 'yes',
+  saf_hallucination: '0',
+  saf_delusion: '0',
+  saf_confusion: '0',
+  saf_control: '0',
+  saf_reference: '0',
+  saf_observed_change: '0',
+};
+
 /** Build a state from a plain map of itemId -> value (or array, for multi). */
 export function stateWith(answers = {}) {
   const state = createState(registry);

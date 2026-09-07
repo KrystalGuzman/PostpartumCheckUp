@@ -16,6 +16,13 @@ const DIFFICULTY = [
   PREFER_NOT_TO_ANSWER,
 ];
 
+/**
+ * The activities whose loss says most about whether someone is coping. Named
+ * here so the safety evaluation can read them without depending on scoring.
+ */
+export const CARE_ITEMS = ['fn_baby_care', 'fn_self_care'];
+export const BASIC_ITEMS = ['fn_get_up', 'fn_eat', 'fn_shower', 'fn_sleep'];
+
 const fn = (id, text, extra = {}) => ({ id, type: 'single', score: true, text, options: DIFFICULTY, ...extra });
 
 export const functioningSection = {

@@ -14,10 +14,15 @@ const NEUTRAL_FREQUENCY = [
   { value: '1', label: 'Once or twice', score: 1 },
   { value: '2', label: 'Several times', score: 2 },
   { value: '3', label: 'Most days', score: 3 },
-  PREFER_NOT_TO_ANSWER,
+  { ...PREFER_NOT_TO_ANSWER, flags: ['safety_declined'] },
 ];
 
-/** Items in this cluster are evaluated together as a possible psychosis pattern. */
+/**
+ * Items in this cluster are evaluated together as a possible psychosis pattern.
+ * Each endorsement carries its own flag, so that the follow-up about how fast
+ * this came on knows to appear at all — without it the rapid-onset escalation
+ * was unreachable.
+ */
 const psychosisItem = (id, text, flag, help) => ({
   id,
   type: 'single',
@@ -25,7 +30,9 @@ const psychosisItem = (id, text, flag, help) => ({
   flagOnScore: flag,
   text,
   help,
-  options: NEUTRAL_FREQUENCY,
+  options: NEUTRAL_FREQUENCY.map((option) =>
+    (option.score ?? 0) >= 1 ? { ...option, flags: [...(option.flags ?? []), flag] } : option,
+  ),
 });
 
 export const safetySection = {

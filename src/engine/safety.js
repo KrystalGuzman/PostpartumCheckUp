@@ -12,6 +12,8 @@
  *   none      — nothing here changes the ordinary result
  */
 
+import { CARE_ITEMS, BASIC_ITEMS } from '../data/functioning.js';
+
 export const EMERGENCY_STATEMENT = [
   'Some of your responses indicate symptoms that can require urgent professional assessment.',
   'This check-up cannot determine the cause of these symptoms.',
@@ -33,6 +35,24 @@ const CORE_PSYCHOSIS_ITEMS = [
 
 /** Corroborating only — an observer's report supports the core items. */
 const OBSERVED_ITEM = 'saf_observed_change';
+
+/** Every item on the safety screen, for counting what was left unanswered. */
+const SAFETY_ITEMS = [
+  'saf_self_harm',
+  'saf_harm_others',
+  'saf_care_capacity',
+  ...CORE_PSYCHOSIS_ITEMS,
+  OBSERVED_ITEM,
+];
+
+/**
+ * Whether someone has engaged with the check-up beyond the opening context —
+ * used to tell "has not reached the safety questions yet" apart from "reached
+ * them and left them blank".
+ */
+function hasAnsweredBeyondContext(state) {
+  return Object.keys(state.responses).some((id) => !id.startsWith('ctx_') && !id.startsWith('saf_'));
+}
 
 export function evaluateSafety(state) {
   const reasons = [];
@@ -102,7 +122,28 @@ export function evaluateSafety(state) {
   }
 
   if (state.has('safety_declined')) {
-    add('elevated', 'declined', 'One or more safety questions were left unanswered');
+    add('elevated', 'declined', 'One or more safety questions were declined');
+  }
+
+  // Leaving the safety questions blank is not the same as answering "no", and
+  // was previously invisible: unanswered items produced no flag at all.
+  const unanswered = SAFETY_ITEMS.filter((id) => !state.answered(id));
+  if (unanswered.length > 0 && (unanswered.length < SAFETY_ITEMS.length || hasAnsweredBeyondContext(state))) {
+    add(
+      'elevated',
+      'safety_unanswered',
+      `${unanswered.length} of the ${SAFETY_ITEMS.length} safety questions were left blank`,
+    );
+  }
+
+  // --- Functional collapse ------------------------------------------------
+  // Part 19 puts severe functional impairment third, above the psychiatric
+  // patterns. Before this, nothing but a safety answer could reach the urgent
+  // tier, so someone reporting they cannot get out of bed, eat, or care for
+  // their baby topped out at "arrange an assessment in the next week or so".
+  const functional = evaluateFunctionalCollapse(state);
+  if (functional.collapsed) {
+    add('urgent', 'functional_collapse', functional.label);
   }
 
   const level = highestLevel(reasons);
@@ -112,6 +153,8 @@ export function evaluateSafety(state) {
     stopScoring: level === 'emergency',
     reasons,
     intrusiveHarmThoughts,
+    functionalCollapse: functional,
+    unansweredCount: unanswered.length,
     detail: {
       coreEndorsed,
       coreMax,
@@ -121,6 +164,36 @@ export function evaluateSafety(state) {
       priorPostpartumPsychosis,
       declined: state.has('safety_declined'),
     },
+  };
+}
+
+/**
+ * Not being able to do the basics is a finding in its own right, whatever
+ * label the symptoms fall under. "I mostly cannot" is the top of the scale —
+ * it means cannot, not "it is hard" — so two of them together, or an inability
+ * to carry out care alongside one, is treated as needing contact today.
+ */
+export function evaluateFunctionalCollapse(state) {
+  const at = (id) => state.scoreOf(id) ?? 0;
+  const cannotCare = CARE_ITEMS.filter((id) => at(id) >= 3);
+  const cannotBasics = BASIC_ITEMS.filter((id) => at(id) >= 3);
+  const total = cannotCare.length + cannotBasics.length;
+
+  const collapsed = (cannotCare.length >= 1 && total >= 2) || cannotBasics.length >= 3;
+  const parts = [];
+  if (cannotCare.includes('fn_baby_care')) parts.push('the practical care your baby needs');
+  if (cannotCare.includes('fn_self_care')) parts.push('looking after yourself');
+  if (cannotBasics.includes('fn_get_up')) parts.push('getting out of bed');
+  if (cannotBasics.includes('fn_eat')) parts.push('eating');
+  if (cannotBasics.includes('fn_shower')) parts.push('washing');
+  if (cannotBasics.includes('fn_sleep')) parts.push('sleeping when you can');
+
+  return {
+    collapsed,
+    items: [...cannotCare, ...cannotBasics],
+    label: collapsed
+      ? `Not currently able to manage ${parts.slice(0, 3).join(', ')}${parts.length > 3 ? ', and more' : ''}`
+      : null,
   };
 }
 

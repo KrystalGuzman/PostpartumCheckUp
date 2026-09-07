@@ -57,6 +57,7 @@ In practice a full run is about 125 questions for a first baby and 150 with olde
 
 ## Design rules the code enforces
 
+- **Not being able to function is itself a warning.** An inability to carry out care alongside a basic — getting up, eating, washing — reaches the urgent tier on its own, with no safety answer required. Severity used to top out at amber for everything that was not a safety flag, which meant someone reporting they could not care for themselves or their baby was told to arrange something in the next week.
 - **Safety outranks scoring.** `evaluateSafety()` runs first and can halt ordinary scoring entirely. A low depression score never cancels a psychosis warning sign — there is a test for exactly that.
 - **A safety flag interrupts when it happens, not at the end.** The level is re-checked after every section, because safety-relevant answers are not confined to the safety screen — the insight question sits in the OCD module, the household-safety question in the support module. Urgent flags interrupt as well as emergencies, and either way the person chooses whether to finish: being told something needs attention is not a reason to lose the rest of what they came to say.
 - **A cap is a ceiling.** Caps are held back and applied after every other adjustment, so a later floor ("persistent for more than three months") can no longer overrule the cardinal-symptom rule. Where a band is held down but the symptom load behind it is real, both summaries say so rather than burying it.

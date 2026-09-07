@@ -6,7 +6,7 @@ import { scoreAll } from '../src/engine/scoring.js';
 import { buildResults } from '../src/engine/results.js';
 import { toPlainText, toProviderText } from '../src/engine/summaryText.js';
 import { buildProviderSummary } from '../src/engine/providerSummary.js';
-import { stateWith } from './helpers.js';
+import { stateWith, CLEAN_SAFETY } from './helpers.js';
 
 const LOW_PRESSURE = {
   pr_body: '1', pr_sleep: '1', pr_time: '1', pr_mental_load: '1',
@@ -34,7 +34,7 @@ test('load and adaptation are measured separately and crossed', () => {
 });
 
 test('a heavy load carried well is not turned into a clinical finding', () => {
-  const state = stateWith({ ctx_stage: 'm3_6', ...HIGH_PRESSURE, ...ADAPTING });
+  const state = stateWith({ ctx_stage: 'm3_6', ...CLEAN_SAFETY, ...HIGH_PRESSURE, ...ADAPTING });
   const scored = scoreAll(state);
   const results = buildResults(scored, state, 'us');
 
@@ -59,7 +59,7 @@ test('losing ground without a load to explain it raises concern and says why', (
 });
 
 test('pressure is reported as circumstance and never drives the level', () => {
-  const scored = scoreAll(stateWith({ ctx_stage: 'm3_6', ...HIGH_PRESSURE }));
+  const scored = scoreAll(stateWith({ ctx_stage: 'm3_6', ...CLEAN_SAFETY, ...HIGH_PRESSURE }));
   assert.equal(scored.byDomain.pressure.group, 'context');
   assert.ok(scored.rankedContext.some((d) => d.domain === 'pressure'));
   assert.equal(scored.rankedSymptoms.some((d) => d.domain === 'pressure'), false);

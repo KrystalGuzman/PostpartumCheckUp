@@ -7,7 +7,7 @@ import { scoreAll, scoreDomain } from '../src/engine/scoring.js';
 import { buildResults } from '../src/engine/results.js';
 import { toPlainText, toProviderText } from '../src/engine/summaryText.js';
 import { buildProviderSummary } from '../src/engine/providerSummary.js';
-import { stateWith, fillDomain } from './helpers.js';
+import { stateWith, fillDomain, CLEAN_SAFETY } from './helpers.js';
 
 const codes = (state) => evaluateRiskFactors(state).factors.map((f) => f.code);
 
@@ -18,7 +18,7 @@ test('no history means no risk factors and no change to the floor', () => {
 });
 
 test('a previous perinatal episode raises the floor to yellow without inventing symptoms', () => {
-  const state = stateWith({ ctx_first_baby: 'no', hist_previous_perinatal: ['depression'] });
+  const state = stateWith({ ...CLEAN_SAFETY, ctx_first_baby: 'no', hist_previous_perinatal: ['depression'] });
   assert.ok(codes(state).includes('prior_perinatal_mood'));
   assert.equal(evaluateRiskFactors(state).concernFloor, 'yellow');
 
@@ -55,6 +55,7 @@ test('a previous postpartum psychosis lowers the threshold on the current safety
 
 test('load factors are reported but never move the level on their own', () => {
   const state = stateWith({
+    ...CLEAN_SAFETY,
     ctx_first_baby: 'no',
     ctx_multiples: 'twins',
     ctx_gap: 'lt12m',

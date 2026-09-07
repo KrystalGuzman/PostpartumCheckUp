@@ -51,9 +51,13 @@ Getting this distinction wrong in either direction causes harm. Treating intrusi
 
 **Capacity.** Unable to keep self and baby safe → emergency. Unsure → urgent, or emergency alongside any reality-testing endorsement.
 
+**Functional collapse.** Being unable to do the basics is a finding in its own right, whatever label the symptoms fall under, and the priority order above puts severe functional impairment third. "I mostly cannot" is the top of that scale — it means cannot, not "it is hard" — so the trigger is an inability to carry out care (the baby's or your own) alongside at least one basic, or three basics together. That reaches `urgent`: red, an interruption, and next steps that say today rather than this week. It does not halt scoring, because it is not a reality-testing emergency.
+
+Deliberately excluded: being unable to work or leave the house, which is common, often circumstantial, and not the same as being unable to function.
+
 **Interpersonal safety.** Not feeling safe with someone at home is `elevated` and produces a route to confidential advocacy. In the emergency pathway it also changes the advice about who to involve — "someone you trust from outside your home" rather than a generic trusted adult.
 
-**Declined questions.** Skipping safety items is `elevated`. It is never read as a "no".
+**Declined questions.** Declining a safety item is `elevated`, on every item including the reality-testing ones. **Leaving them blank is too**: unanswered safety questions are counted and flagged once the person has engaged with the check-up, so that a skipped screen is visible rather than silently equivalent to a clean one. Someone who has not yet reached the safety questions is not accused of skipping them.
 
 ## Wording rules
 
