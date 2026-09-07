@@ -94,23 +94,66 @@ function forget() {
 const esc = (value) =>
   String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-function render({ preserveFocus = false } = {}) {
-  const focusId = preserveFocus ? document.activeElement?.id : null;
-  const scroll = preserveFocus ? window.scrollY : 0;
+function render({ stay = false } = {}) {
+  const scroll = window.scrollY;
+  const focusId = document.activeElement?.id || null;
 
   if (ui.screen === 'intro') app.innerHTML = introScreen();
   else if (ui.screen === 'section') app.innerHTML = sectionScreen();
   else if (ui.screen === 'safetyAlert') app.innerHTML = safetyAlertScreen();
   else app.innerHTML = resultsScreen();
 
-  if (focusId) {
-    const el = document.getElementById(focusId);
-    if (el) el.focus({ preventScroll: true });
+  if (stay) {
+    // Restore unconditionally. Whether focus survived the click is irrelevant
+    // to where the page should be, and tying the two together is what sent
+    // people back to the top after every answer.
     window.scrollTo(0, scroll);
+    if (focusId) document.getElementById(focusId)?.focus({ preventScroll: true });
   } else {
-    window.scrollTo({ top: 0 });
+    window.scrollTo(0, 0);
     app.querySelector('h1, h2')?.focus?.();
   }
+}
+
+const prefersReducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+
+/** Repaint one answered card in place, rather than rebuilding the section. */
+function syncCard(itemId) {
+  const card = app.querySelector(`.card[data-item="${CSS.escape(itemId)}"]`);
+  if (!card) return;
+  for (const label of card.querySelectorAll('.option')) {
+    label.dataset.checked = String(Boolean(label.querySelector('input')?.checked));
+  }
+}
+
+function syncProgress() {
+  const p = progress(state);
+  const bar = app.querySelector('.progress-bar > i');
+  if (bar) bar.style.width = `${Math.round(p.ratio * 100)}%`;
+  const label = app.querySelector('.progress-label > span:last-child');
+  if (label) label.textContent = `${p.answered} of ${p.total} answered`;
+}
+
+/**
+ * Bring the next unanswered question into view, but only ever forwards and
+ * only when it is off-screen. If the next question is already visible, nothing
+ * moves — the page should never jump under someone who is still reading.
+ */
+function nudgeToNext(itemId) {
+  const cards = [...app.querySelectorAll('.card[data-item]')];
+  const from = cards.findIndex((card) => card.dataset.item === itemId);
+  if (from === -1) return;
+
+  const next = cards.slice(from + 1).find((card) => !card.querySelector('input:checked'));
+  const target = next ?? app.querySelector('.actions');
+  if (!target) return;
+
+  const { top, bottom } = target.getBoundingClientRect();
+  const alreadyVisible = top >= 0 && bottom <= window.innerHeight;
+  const above = top < 0;
+  if (alreadyVisible || above) return;
+
+  target.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: next ? 'center' : 'end' });
 }
 
 function introScreen() {
@@ -218,7 +261,7 @@ function itemCard(item) {
   const selected = answer ? (Array.isArray(answer.value) ? answer.value : [answer.value]) : [];
   const type = item.type === 'multi' ? 'checkbox' : 'radio';
   return `
-    <div class="card" role="${type === 'radio' ? 'radiogroup' : 'group'}" aria-labelledby="q_${esc(item.id)}">
+    <div class="card" data-item="${esc(item.id)}" role="${type === 'radio' ? 'radiogroup' : 'group'}" aria-labelledby="q_${esc(item.id)}">
       ${item.situation ? `<div class="situation">${esc(item.situation)}</div>` : ''}
       <p class="q" id="q_${esc(item.id)}">${esc(item.text)}</p>
       ${item.help ? `<p class="help">${esc(item.help)}</p>` : ''}
@@ -248,7 +291,7 @@ function dateCard(item) {
   const declined = value === 'pna';
   const max = typeof item.max === 'function' ? item.max() : item.max;
   return `
-    <div class="card">
+    <div class="card" data-item="${esc(item.id)}">
       <p class="q" id="q_${esc(item.id)}">${esc(item.text)}</p>
       ${item.help ? `<p class="help">${esc(item.help)}</p>` : ''}
       <input type="date" class="datefield" id="${esc(item.id)}__date" data-item="${esc(item.id)}"
@@ -746,7 +789,7 @@ app.addEventListener('change', (event) => {
     ui.save = input.checked;
     if (ui.save) persist();
     else forget();
-    render({ preserveFocus: true });
+    render({ stay: true });
     return;
   }
   if (input.id === '__name') {
@@ -754,26 +797,32 @@ app.addEventListener('change', (event) => {
     // name into the document happens here, on blur, so the caret is left alone.
     ui.name = input.value;
     persist();
-    render({ preserveFocus: true });
+    render({ stay: true });
     return;
   }
   if (input.name === '__mode') {
     ui.mode = input.value;
     state.setMode(input.value);
     persist();
-    render({ preserveFocus: true });
+    render({ stay: true });
     return;
   }
   if (input.name === '__region') {
     ui.region = input.value;
     persist();
-    render({ preserveFocus: true });
+    render({ stay: true });
     return;
   }
 
   const itemId = input.dataset.item;
   const item = registry.getItem(itemId);
   if (!item) return;
+
+  const section = applicableSections(state).find((s) => s.id === ui.sectionId);
+  const itemsBefore = section ? visibleItems(section, state).map((i) => i.id).join('|') : '';
+  // Answering for the first time is moving forward; changing an answer is not.
+  // Only the first should carry her down the page.
+  const wasAnswered = state.answered(itemId);
 
   if (item.type === 'date') {
     if (input.dataset.pna) {
@@ -791,7 +840,21 @@ app.addEventListener('change', (event) => {
     state.set(itemId, input.value);
   }
   persist();
-  render({ preserveFocus: true });
+
+  // Only rebuild the section when the answer actually changed which questions
+  // apply — a gate opening, a branch closing. Otherwise repaint the one card,
+  // which leaves the page exactly where she left it.
+  const itemsAfter = section ? visibleItems(section, state).map((i) => i.id).join('|') : '';
+  if (section && itemsBefore === itemsAfter) {
+    syncCard(itemId);
+    syncProgress();
+  } else {
+    render({ stay: true });
+  }
+
+  // Multi-select stays put: she may not be finished choosing. Neither does a
+  // correction — she scrolled back here on purpose.
+  if (item.type !== 'multi' && !wasAnswered) nudgeToNext(itemId);
 });
 
 app.addEventListener('click', (event) => {
